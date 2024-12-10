@@ -1,0 +1,92 @@
+//------------------------------------------------
+//--- 010 Editor v15.0.1 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+LittleEndian();
+
+struct
+{
+    char   magic[2];
+    uint16 version;
+    uint16 zero;
+    uint16 headerSize;
+    char   type[4];
+} headerDat;
+
+struct ChunkHeader
+{
+char magic[4];
+uint32 chunkSize;
+uint16 version;
+uint16 headerSize;
+uint32 offsetToOffsetTable;
+};
+
+struct ChunkData
+{
+    ChunkHeader chunkHeader;
+    if(chunkHeader.offsetToOffsetTable!=0)
+    {
+        ubyte data[chunkHeader.offsetToOffsetTable];
+        uint32 nbOfOffsets;
+        uint32 offsets[nbOfOffsets];
+    }else{
+        ubyte data[chunkHeader.chunkSize - 8];
+    }
+    if ((FTell() - startof(chunkHeader)) < (chunkHeader.chunkSize + 8))
+    {
+        ubyte unknown[chunkHeader.chunkSize + 8 - (FTell() - startof(chunkHeader))];
+    }
+};
+
+
+struct ChunkDataGeom
+{
+    ChunkHeader chunkHeader;
+    if(chunkHeader.offsetToOffsetTable!=0)
+    {
+        ubyte data[chunkHeader.offsetToOffsetTable];
+        uint32 nbOfOffsets;
+        uint32 offsets[nbOfOffsets];
+    }else{
+        ubyte data[chunkHeader.chunkSize - 8];
+    }
+    if ((FTell() - startof(chunkHeader)) < (chunkHeader.chunkSize + 8))
+    {
+        ubyte unknown[chunkHeader.chunkSize + 8 - (FTell() - startof(chunkHeader))];
+    }
+};
+
+
+ChunkData chunkData;
+
+ChunkDataGeom chunkData2;
+
+ChunkData chunkData3;
+ChunkData chunkData4;
+ChunkData chunkData5;
+ChunkData chunkData6;
+ChunkData chunkData7;
+ChunkData chunkData8;
+ChunkData chunkData9;
+ChunkData chunkData10;
+ChunkData chunkData11;
+ChunkData chunkData12;
+ChunkData chunkData13;
+ChunkData chunkData14;
+ChunkData chunkData15;
+ChunkData chunkData16;
+ChunkData chunkData17;
+ChunkData chunkData18;
+ChunkData chunkData19;
+ChunkData chunkData20;
+
+
