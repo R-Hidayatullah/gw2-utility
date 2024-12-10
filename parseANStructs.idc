@@ -91,51 +91,51 @@ static isANStructTab(iAddress, iNumber)
     return (aLoopIndex == iNumber);
 }
 
-static getSimpleTypeName(iAddress)
+static std::string getSimpleTypeName(int iAddress)
 {
-    auto aTypeId;
-    aTypeId = Word(iAddress);
+    auto aTypeId = Word(iAddress); // Assuming Word(iAddress) retrieves a type identifier.
     if (aTypeId == 0x05)
-        return "byte";
+        return "byte"; // Equivalent to uint8_t in modern C++.
     else if (aTypeId == 0x06)
-        return "byte4";
+        return "byte4"; // Equivalent to a 4-byte array or uint8_t[4].
     else if (aTypeId == 0x07)
-        return "double";
+        return "double"; // Matches double in modern C++.
     else if (aTypeId == 0x0A)
-        return "dword";
+        return "dword"; // Equivalent to uint32_t.
     else if (aTypeId == 0x0B)
-        return "filename";
+        return "filename"; // Could represent a std::string or const char*.
     else if (aTypeId == 0x0C)
-        return "float";
+        return "float"; // Matches float in modern C++.
     else if (aTypeId == 0x0D)
-        return "float2";
+        return "float2"; // Could represent a struct or std::array<float, 2>.
     else if (aTypeId == 0x0E)
-        return  "float3";
+        return "float3"; // Could represent a struct or std::array<float, 3>.
     else if (aTypeId == 0x0F)
-        return "float4";
+        return "float4"; // Could represent a struct or std::array<float, 4>.
     else if (aTypeId == 0x11)
-        return "qword";
+        return "qword"; // Equivalent to uint64_t.
     else if (aTypeId == 0x12)
-        return "wchar_ptr";
+        return "wchar_ptr"; // Matches const wchar_t* or wchar_t*.
     else if (aTypeId == 0x13)
-        return "char_ptr";
+        return "char_ptr"; // Matches const char* or char*.
     else if (aTypeId == 0x15)
-        return "word";
+        return "word"; // Equivalent to uint16_t.
     else if (aTypeId == 0x16)
-        return "byte16";
+        return "byte16"; // Equivalent to a 16-byte array or uint8_t[16].
     else if (aTypeId == 0x17)
-        return "byte3";
+        return "byte3"; // Equivalent to a 3-byte array or uint8_t[3].
     else if (aTypeId == 0x18)
-        return "dword2";
+        return "dword2"; // Equivalent to std::array<uint32_t, 2>.
     else if (aTypeId == 0x19)
-        return "dword4";
+        return "dword4"; // Equivalent to std::array<uint32_t, 4>.
     else if (aTypeId == 0x1A)
-        return "word3";
+        return "word3"; // Equivalent to std::array<uint16_t, 3>.
     else if (aTypeId == 0x1B)
-        return "fileref";
+        return "fileref"; // Could represent a std::string or a custom file reference type.
     else
-        return "ERROR";
+        return "ERROR"; // Indicates an unrecognized type.
 }
+
 
 static parseMember(iAddress, iParsedStructsId, iOutputFile)
 {
