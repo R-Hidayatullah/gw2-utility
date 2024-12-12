@@ -91,53 +91,53 @@ static isANStructTab(iAddress, iNumber)
     return (aLoopIndex == iNumber);
 }
 
-static std::string getSimpleTypeName(int iAddress)
+static getSimpleTypeName(iAddress)
 {
-    auto aTypeId = Word(iAddress); // Assuming Word(iAddress) retrieves a type identifier.
+    auto aTypeId;
+    aTypeId = Word(iAddress);
     if (aTypeId == 0x05)
-        return "byte"; // Equivalent to uint8_t in modern C++.
+        return "byte";
     else if (aTypeId == 0x06)
-        return "byte4"; // Equivalent to a 4-byte array or uint8_t[4].
+        return "byte4";
     else if (aTypeId == 0x07)
-        return "double"; // Matches double in modern C++.
+        return "double";
     else if (aTypeId == 0x0A)
-        return "dword"; // Equivalent to uint32_t.
+        return "dword";
     else if (aTypeId == 0x0B)
-        return "filename"; // Could represent a std::string or const char*.
+        return "filename";
     else if (aTypeId == 0x0C)
-        return "float"; // Matches float in modern C++.
+        return "float";
     else if (aTypeId == 0x0D)
-        return "float2"; // Could represent a struct or std::array<float, 2>.
+        return "float2";
     else if (aTypeId == 0x0E)
-        return "float3"; // Could represent a struct or std::array<float, 3>.
+        return  "float3";
     else if (aTypeId == 0x0F)
-        return "float4"; // Could represent a struct or std::array<float, 4>.
+        return "float4";
     else if (aTypeId == 0x11)
-        return "qword"; // Equivalent to uint64_t.
+        return "qword";
     else if (aTypeId == 0x12)
-        return "wchar_ptr"; // Matches const wchar_t* or wchar_t*.
+        return "wchar_ptr";
     else if (aTypeId == 0x13)
-        return "char_ptr"; // Matches const char* or char*.
+        return "char_ptr";
     else if (aTypeId == 0x15)
-        return "word"; // Equivalent to uint16_t.
+        return "word";
     else if (aTypeId == 0x16)
-        return "byte16"; // Equivalent to a 16-byte array or uint8_t[16].
+        return "byte16";
     else if (aTypeId == 0x17)
-        return "byte3"; // Equivalent to a 3-byte array or uint8_t[3].
+        return "byte3";
     else if (aTypeId == 0x18)
-        return "dword2"; // Equivalent to std::array<uint32_t, 2>.
+        return "dword2";
     else if (aTypeId == 0x19)
-        return "dword4"; // Equivalent to std::array<uint32_t, 4>.
+        return "dword4";
     else if (aTypeId == 0x1A)
-        return "word3"; // Equivalent to std::array<uint16_t, 3>.
+        return "word3";
     else if (aTypeId == 0x1B)
-        return "fileref"; // Could represent a std::string or a custom file reference type.
+        return "fileref";
     else
-        return "ERROR"; // Indicates an unrecognized type.
+        return "ERROR";
 }
 
-
-static parseMember(iAddress, iParsedStructsId, iOutputFile)
+static parseMember(aLoopIndex, iAddress, iParsedStructsId, iOutputFile)
 {
     auto aTypeId, aMemberName, aOptimized, aTempOutput;
     //aMemberName = getAsciiName(Dword(iAddress + 4));
@@ -152,20 +152,20 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x01)
     {
-        //aTempOutput = form("%s %s[%d]", parseStruct(Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName, Dword(iAddress + 12));
-		aTempOutput = form("%s %s[%d]", parseStruct(Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName, Qword(iAddress + 24));
+        //aTempOutput = form("%s %s[%d]", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName, Dword(iAddress + 12));
+		aTempOutput = form("%s %s[%d]", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName, Qword(iAddress + 24));
         aOptimized = 1;
     }
     else if (aTypeId == 0x02)
     {
-        //aTempOutput = form("TSTRUCT_ARRAY_PTR_START %s %s TSTRUCT_ARRAY_PTR_END", parseStruct(Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
-        aTempOutput = form("TSTRUCT_ARRAY_PTR_START %s %s TSTRUCT_ARRAY_PTR_END", parseStruct(Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
+        //aTempOutput = form("helpers::Array<%s> %s ", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
+        aTempOutput = form("helpers::Array<%s> %s ", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
         aOptimized = 0;
     }
     else if (aTypeId == 0x03)
     {
-        //aTempOutput = form("TSTRUCT_PTR_ARRAY_PTR_START %s %s TSTRUCT_PTR_ARRAY_PTR_END", parseStruct(Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
-        aTempOutput = form("TSTRUCT_PTR_ARRAY_PTR_START %s %s TSTRUCT_PTR_ARRAY_PTR_END", parseStruct(Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
+        //aTempOutput = form("helpers::PtrStruct<%s> %s ", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
+        aTempOutput = form("helpers::PtrStruct<%s> %s ", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
         aOptimized = 0;
     }
     else if (aTypeId == 0x04)
@@ -205,7 +205,7 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x0B)
     {
-        aTempOutput = form("%s %s", "filename", aMemberName);
+        aTempOutput = form("%s %s", "helpers::FileName", aMemberName);
         aOptimized = 0;
     }
     else if (aTypeId == 0x0C)
@@ -230,8 +230,8 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x10)
     {
-        //aTempOutput = form("TPTR_START %s %s TPTR_END", parseStruct(Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
-        aTempOutput = form("TPTR_START %s %s TPTR_END", parseStruct(Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
+        //aTempOutput = form("TPTR_START %s %s ", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
+        aTempOutput = form("helpers::Ptr<%s> %s ", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
         aOptimized = 0;
     }
     else if (aTypeId == 0x11)
@@ -241,18 +241,18 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x12)
     {
-        aTempOutput = form("%s %s", "wchar_ptr", aMemberName);
+        aTempOutput = form("%s %s", "helpers::WString", aMemberName);
         aOptimized = 0;
     }
     else if (aTypeId == 0x13)
     {
-        aTempOutput = form("%s %s", "char_ptr", aMemberName);
+        aTempOutput = form("%s %s", "helpers::String", aMemberName);
         aOptimized = 0;
     }
     else if (aTypeId == 0x14)
     {
-        //aTempOutput = form("%s %s", parseStruct(Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
-        aTempOutput = form("%s %s", parseStruct(Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
+        //aTempOutput = form("%s %s", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
+        aTempOutput = form("%s %s", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x15)
@@ -287,7 +287,7 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x1B)
     {
-        aTempOutput = form("%s %s", "fileref", aMemberName);
+        aTempOutput = form("%s %s", "helpers::FileName", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x1C)
@@ -297,8 +297,8 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x1D)
     {
-        //aTempOutput = form("%s %s", parseStruct(Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
-        aTempOutput = form("%s %s", parseStruct(Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
+        //aTempOutput = form("%s %s", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
+        aTempOutput = form("%s %s", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
         aOptimized = 1;
     }
     else
@@ -313,9 +313,9 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     return aTempOutput;
 }
 
-static parseStruct(iAddress, iParsedStructsId, iOutputFile)
+static parseStruct(aLoopIndex, iAddress, iParsedStructsId, iOutputFile)
 {
-    auto aOutput, aStructName, aCurrentAddress, aAlreadyParsed, aMemberOutput;
+    auto aOutput, aStructName, aCurrentAddress, aAlreadyParsed, aMemberOutput,customStructName;
 
     aAlreadyParsed = isIn(iParsedStructsId, iAddress);
     add(iParsedStructsId, iAddress);
@@ -333,7 +333,7 @@ static parseStruct(iAddress, iParsedStructsId, iOutputFile)
     {
         if (!aAlreadyParsed)
         {
-            aMemberOutput = parseMember(aCurrentAddress, iParsedStructsId, iOutputFile);
+            aMemberOutput = parseMember(aLoopIndex, aCurrentAddress, iParsedStructsId, iOutputFile);
             aOutput = form("%s%s", aOutput, aMemberOutput);
         }
 
@@ -346,17 +346,18 @@ static parseStruct(iAddress, iParsedStructsId, iOutputFile)
 
     if (!aAlreadyParsed)
     {
-        aOutput = form("typedef struct {\n%s} %s;\n\n", aOutput, aStructName);
+//        aOutput = form("GW2FORMATS_API struct %s {\n%s\npublic:\n    %s();\n    %s &operator=(const %s &p_other);\n    %s(const byte *p_data, size_t p_size, const byte **po_pointer = nullptr);\n    %s(const %s &p_other);\n    const byte *assign(const byte *p_data, size_t p_size);\n};\n\n",aStructName, aOutput, aStructName, aStructName, aStructName, aStructName, aStructName, aStructName);
+        aOutput = form("struct %s {\n%s};\n\n",aStructName, aOutput);
         fprintf(iOutputFile, "%s", aOutput);
     }
 
     return aStructName;
 }
 
-static parseStructTab(iANSTructTabOffset, iNbOfVersions, iOutputFile)
+static parseStructTab(aChunkName, iANSTructTabOffset, iNbOfVersions, iOutputFile)
 {
     auto aCurrentAddress, aLoopIndex, aParsedStructsId, aSubAddress;
-
+    auto aStructName;
     aLoopIndex = iNbOfVersions - 1;
     aCurrentAddress = iANSTructTabOffset;
 
@@ -379,7 +380,8 @@ static parseStructTab(iANSTructTabOffset, iNbOfVersions, iOutputFile)
             {
                 fprintf(iOutputFile, "/* Version: %d */\n", aLoopIndex);
             }
-            parseStruct(aCurrentAddress, aParsedStructsId, iOutputFile);
+            aStructName = parseStruct(aLoopIndex, aCurrentAddress, aParsedStructsId, iOutputFile); 
+            fprintf(iOutputFile, "typedef %s Gw2Struct%s;\n\n",  aStructName, aChunkName);
         }
         aLoopIndex = aLoopIndex - 1;
     }
@@ -445,6 +447,8 @@ static main(void)
     Message("Parsing .rdata for chunk_infos.\n");
 
     aCurrentAddress = aMinRDataSeg;
+    auto count;
+    count=0;
     while (aCurrentAddress < aMaxRDataSeg)
     {
         if (IS_ASCII(aCurrentAddress) && IS_ASCII(aCurrentAddress + 1) && IS_ASCII(aCurrentAddress + 2) && (Byte(aCurrentAddress + 3) == 0 || IS_ASCII(aCurrentAddress + 3)))
@@ -473,7 +477,7 @@ static main(void)
                             fprintf(aOutputFile, " * Chunk: %s, versions: %d, strucTab: 0x%X\n", aChunkName, aNbOfVersions, aANSTructTabOffset);
                             fprintf(aOutputFile, " * ===============================================\n");
                             fprintf(aOutputFile, " */\n\n");
-                            parseStructTab(aANSTructTabOffset, aNbOfVersions, aOutputFile);
+                            parseStructTab(aChunkName, aANSTructTabOffset, aNbOfVersions, aOutputFile);
                             fprintf(aOutputFile, "\n");
                         }
                     }
@@ -482,6 +486,11 @@ static main(void)
         }
 
         aCurrentAddress = aCurrentAddress + 4;
+        count++;
+        if (count==300000)
+        {
+            break;
+        }
     }
 
     DeleteArray(aParsedTablesId);
