@@ -49,14 +49,14 @@ void processFile(const std::string &inputFile, const std::string &outputDir)
         // If we find a chunk, save the previous line (if any) and the current line
         if (std::regex_search(line, match, chunkRegex))
         {
-            // Save the previous chunk's content, including the previous line before the chunk
-            if (!currentChunk.empty() && currentVersion != -1)
+            // If there is content for the previous chunk, save it
+            if (!currentChunk.empty())
             {
-                // Check if the last line is the special comment and remove it
                 std::string bufferContent = contentBuffer.str();
+
+                // Check if the last line is the special comment and remove it
                 if (bufferContent.find("/* ===============================================") != std::string::npos)
                 {
-                    // Remove the last line (special comment)
                     size_t pos = bufferContent.rfind("\n/* ===============================================");
                     if (pos != std::string::npos)
                     {
@@ -64,7 +64,7 @@ void processFile(const std::string &inputFile, const std::string &outputDir)
                     }
                 }
 
-                std::string fileName = outputDir + "/" + currentChunk + "/" + toLowercase(currentChunk) + "_" + std::to_string(currentVersion) + ".h";
+                std::string fileName = outputDir + "/" + currentChunk + "/" + toLowercase(currentChunk) + ".h";
                 createDirectories(outputDir + "/" + currentChunk);
                 std::ofstream outFile(fileName);
                 if (!outFile.is_open())
@@ -74,23 +74,25 @@ void processFile(const std::string &inputFile, const std::string &outputDir)
                 }
 
                 // Add include guard
-                std::string guardName = currentChunk + "_" + std::to_string(currentVersion);
+                std::string guardName = currentChunk;
                 std::transform(guardName.begin(), guardName.end(), guardName.begin(), ::toupper);
                 std::replace(guardName.begin(), guardName.end(), '.', '_');
 
                 outFile << "#ifndef " << guardName << "_H\n";
                 outFile << "#define " << guardName << "_H\n\n";
+                outFile << "#include \"gw2format/gw2_type.h\"\n\n";
                 outFile << bufferContent; // Write the cleaned buffer content
                 outFile << "\n#endif // " << guardName << "_H\n";
 
                 outFile.close();
-                contentBuffer.str(""); // Clear the buffer
-                contentBuffer.clear();
             }
 
             // Start new chunk with the previous line
             currentChunk = match[1];
-            currentVersion = -1; // Reset version for new chunk
+            currentVersion = -1;   // Reset version for new chunk
+            contentBuffer.str(""); // Clear the buffer
+            contentBuffer.clear();
+
             if (!previousLine.empty())
             {
                 contentBuffer << previousLine << "\n"; // Add the previous line before the chunk
@@ -100,33 +102,6 @@ void processFile(const std::string &inputFile, const std::string &outputDir)
         // Detect Version
         if (std::regex_search(line, match, versionRegex))
         {
-            // Save current buffer to file if a previous version exists
-            if (currentVersion != -1)
-            {
-                std::string fileName = outputDir + "/" + currentChunk + "/" + toLowercase(currentChunk) + "_" + std::to_string(currentVersion) + ".h";
-                createDirectories(outputDir + "/" + currentChunk);
-                std::ofstream outFile(fileName);
-                if (!outFile.is_open())
-                {
-                    std::cerr << "Error creating file: " << fileName << "\n";
-                    continue;
-                }
-
-                // Add include guard
-                std::string guardName = currentChunk + "_" + std::to_string(currentVersion);
-                std::transform(guardName.begin(), guardName.end(), guardName.begin(), ::toupper);
-                std::replace(guardName.begin(), guardName.end(), '.', '_');
-
-                outFile << "#ifndef " << guardName << "_H\n";
-                outFile << "#define " << guardName << "_H\n\n";
-                outFile << contentBuffer.str();
-                outFile << "\n#endif // " << guardName << "_H\n";
-
-                outFile.close();
-                contentBuffer.str(""); // Clear the buffer
-                contentBuffer.clear();
-            }
-
             currentVersion = std::stoi(match[1]); // Update the version
         }
 
@@ -138,13 +113,13 @@ void processFile(const std::string &inputFile, const std::string &outputDir)
     }
 
     // Write the last chunk
-    if (!currentChunk.empty() && currentVersion != -1)
+    if (!currentChunk.empty())
     {
-        // Check if the last line is the special comment and remove it
         std::string bufferContent = contentBuffer.str();
+
+        // Check if the last line is the special comment and remove it
         if (bufferContent.find("/* ===============================================") != std::string::npos)
         {
-            // Remove the last line (special comment)
             size_t pos = bufferContent.rfind("\n/* ===============================================");
             if (pos != std::string::npos)
             {
@@ -152,7 +127,7 @@ void processFile(const std::string &inputFile, const std::string &outputDir)
             }
         }
 
-        std::string fileName = outputDir + "/" + currentChunk + "/" + toLowercase(currentChunk) + "_" + std::to_string(currentVersion) + ".h";
+        std::string fileName = outputDir + "/" + currentChunk + "/" + toLowercase(currentChunk) + ".h";
         createDirectories(outputDir + "/" + currentChunk);
         std::ofstream outFile(fileName);
         if (!outFile.is_open())
@@ -162,12 +137,13 @@ void processFile(const std::string &inputFile, const std::string &outputDir)
         else
         {
             // Add include guard
-            std::string guardName = currentChunk + "_" + std::to_string(currentVersion);
+            std::string guardName = currentChunk;
             std::transform(guardName.begin(), guardName.end(), guardName.begin(), ::toupper);
             std::replace(guardName.begin(), guardName.end(), '.', '_');
 
             outFile << "#ifndef " << guardName << "_H\n";
             outFile << "#define " << guardName << "_H\n\n";
+            outFile << "#include \"gw2format/gw2_type.h\"\n\n";
             outFile << bufferContent; // Write the cleaned buffer content
             outFile << "\n#endif // " << guardName << "_H\n";
 
@@ -181,9 +157,10 @@ void processFile(const std::string &inputFile, const std::string &outputDir)
 int main()
 {
     std::string inputFile = "input.txt"; // Path to your input file
-    std::string outputDir = "output";    // Directory to save generated files
-
+    std::string outputDir = "fourcc";    // Directory to save generated files
+    std::cout << "Started Parsing....\n";
     processFile(inputFile, outputDir);
+    std::cout << "Finished\n";
 
     return 0;
 }
