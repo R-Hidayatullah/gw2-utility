@@ -448,8 +448,8 @@ static main(void)
     Message("Parsing .rdata for chunk_infos.\n");
 
     aCurrentAddress = aMinRDataSeg;
-    auto counted;
-    counted=0;
+    //auto counted;
+    //counted=0;
     while (aCurrentAddress < aMaxRDataSeg)
     {
         if (IS_ASCII(aCurrentAddress) && IS_ASCII(aCurrentAddress + 1) && IS_ASCII(aCurrentAddress + 2) && (Byte(aCurrentAddress + 3) == 0 || IS_ASCII(aCurrentAddress + 3)))
@@ -488,11 +488,11 @@ static main(void)
         }
 
         aCurrentAddress = aCurrentAddress + 4;
-        counted++;
-        if (counted==300000)
-        {
-            break;
-        }
+        //counted++;
+        //if (counted==300000)
+        //{
+        //    break;
+        //}
     }
 
     DeleteArray(aParsedTablesId);
