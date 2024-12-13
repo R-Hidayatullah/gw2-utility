@@ -419,7 +419,7 @@ void processFile(const std::string &inputFile, const std::string &outputDir)
 
                 outFile << "#ifndef " << guardName << "_H\n";
                 outFile << "#define " << guardName << "_H\n\n";
-                outFile << "#include \"gw2format/gw2_type.h\"\n\n";
+                outFile << "#include \"gw2formats/gw2_type.h\"\n\n";
                 outFile << bufferContent; // Write the cleaned buffer content
                 outFile << "\n#endif // " << guardName << "_H\n";
 
@@ -482,7 +482,7 @@ void processFile(const std::string &inputFile, const std::string &outputDir)
 
             outFile << "#ifndef " << guardName << "_H\n";
             outFile << "#define " << guardName << "_H\n\n";
-            outFile << "#include \"gw2format/gw2_type.h\"\n\n";
+            outFile << "#include \"gw2formats/gw2_type.h\"\n\n";
             outFile << bufferContent; // Write the cleaned buffer content
             outFile << "\n#endif // " << guardName << "_H\n";
 
@@ -546,8 +546,8 @@ void processFileSource(const std::string &inputFile, const std::string &outputDi
                 std::transform(guardName.begin(), guardName.end(), guardName.begin(), ::toupper);
                 std::replace(guardName.begin(), guardName.end(), '.', '_');
 
-                outFile << "#include \"gw2format/fourcc/" << currentChunk << "/" << toLowercase(currentChunk) << ".h\"\n\n";
-                outFile << "#include \"gw2format/gw2_type.h\"\n\n";
+                outFile << "#include \"gw2formats/fourcc/" << currentChunk << "/" << toLowercase(currentChunk) << ".h\"\n\n";
+                outFile << "#include \"gw2formats/gw2_type.h\"\n\n";
                 std::cout << "Parse content!\n";
                 bufferContent = convertToRawStringLiteral(bufferContent);
                 bufferContent = processAllStructs(bufferContent);
@@ -610,8 +610,8 @@ void processFileSource(const std::string &inputFile, const std::string &outputDi
             std::transform(guardName.begin(), guardName.end(), guardName.begin(), ::toupper);
             std::replace(guardName.begin(), guardName.end(), '.', '_');
 
-            outFile << "#include \"gw2format/fourcc/" << currentChunk << "/" << toLowercase(currentChunk) << ".h\"\n\n";
-            outFile << "#include \"gw2format/gw2_type.h\"\n\n";
+            outFile << "#include \"gw2formats/fourcc/" << currentChunk << "/" << toLowercase(currentChunk) << ".h\"\n\n";
+            outFile << "#include \"gw2formats/gw2_type.h\"\n\n";
             std::cout << "Parse content!\n";
 
             bufferContent = convertToRawStringLiteral(bufferContent);
@@ -627,14 +627,15 @@ void processFileSource(const std::string &inputFile, const std::string &outputDi
 
 int main()
 {
-    std::string inputFile = "input.txt";            // Path to your input file
-    std::string outputDirHeader = "include/fourcc"; // Directory to save generated files
-    std::string outputDirSource = "source/fourcc";  // Directory to save generated files
+    std::string inputFileHeader = "input_header.txt"; // Path to your input file
+    std::string inputFileSource = "input_source.txt"; // Path to your input file
+    std::string outputDirHeader = "include/fourcc";   // Directory to save generated files
+    std::string outputDirSource = "source/fourcc";    // Directory to save generated files
 
     std::cout << "Started Parsing....\n";
-    processFile(inputFile, outputDirHeader);
+    processFile(inputFileHeader, outputDirHeader);
     std::cout << "Finished\n";
-    processFileSource(inputFile, outputDirSource);
+    processFileSource(inputFileSource, outputDirSource);
     std::cout << "Finished\n";
 
     return 0;
