@@ -158,14 +158,14 @@ static parseMember(aLoopIndex, iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x02)
     {
-        //aTempOutput = form("helpers::Array<%s> %s ", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
-        aTempOutput = form("helpers::Array<%s> %s ", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
+        //aTempOutput = form("helpers::Array<%s> %s", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
+        aTempOutput = form("helpers::Array<%s> %s", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
         aOptimized = 0;
     }
     else if (aTypeId == 0x03)
     {
-        //aTempOutput = form("helpers::PtrStruct<%s> %s ", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
-        aTempOutput = form("helpers::PtrStruct<%s> %s ", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
+        //aTempOutput = form("helpers::PtrStruct<%s> %s", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
+        aTempOutput = form("helpers::Ptr<%s> %s", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
         aOptimized = 0;
     }
     else if (aTypeId == 0x04)
@@ -230,8 +230,8 @@ static parseMember(aLoopIndex, iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x10)
     {
-        //aTempOutput = form("TPTR_START %s %s ", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
-        aTempOutput = form("helpers::Ptr<%s> %s ", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
+        //aTempOutput = form("TPTR_START %s %s", parseStruct(aLoopIndex, Dword(iAddress + 8), iParsedStructsId, iOutputFile), aMemberName);
+        aTempOutput = form("helpers::Ptr<%s> %s", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
         aOptimized = 0;
     }
     else if (aTypeId == 0x11)
@@ -346,8 +346,8 @@ static parseStruct(aLoopIndex, iAddress, iParsedStructsId, iOutputFile)
 
     if (!aAlreadyParsed)
     {
-//        aOutput = form("GW2FORMATS_API struct %s {\n%s\npublic:\n    %s();\n    %s &operator=(const %s &p_other);\n    %s(const byte *p_data, size_t p_size, const byte **po_pointer = nullptr);\n    %s(const %s &p_other);\n    const byte *assign(const byte *p_data, size_t p_size);\n};\n\n",aStructName, aOutput, aStructName, aStructName, aStructName, aStructName, aStructName, aStructName);
-        aOutput = form("struct %s {\n%s};\n\n",aStructName, aOutput);
+        aOutput = form("struct %s {\n%s\npublic:\n    %s();\n    %s &operator=(const %s &p_other);\n    %s(const byte *p_data, size_t p_size, const byte **po_pointer = nullptr);\n    %s(const %s &p_other);\n    const byte *assign(const byte *p_data, size_t p_size);\n};\n\n",aStructName, aOutput, aStructName, aStructName, aStructName, aStructName, aStructName, aStructName);
+        //aOutput = form("struct %s {\n%s};\n\n",aStructName, aOutput);
         fprintf(iOutputFile, "%s", aOutput);
     }
 
@@ -401,7 +401,7 @@ static main(void)
     auto aChunkName, aNbOfVersions, aANSTructTabOffset;
 
     auto aOutputFile, aReportFile;
-    aOutputFile = fopen("output.txt", "w");
+    aOutputFile = fopen("gw2structsversion2.txt", "w");
 
     Message("ANet structs script started.\n");
 
