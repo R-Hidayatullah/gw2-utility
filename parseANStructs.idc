@@ -104,7 +104,7 @@ static getSimpleTypeName(iAddress)
     else if (aTypeId == 0x0A)
         return "dword";
     else if (aTypeId == 0x0B)
-        return "filename";
+        return "helpers::FileName";
     else if (aTypeId == 0x0C)
         return "float";
     else if (aTypeId == 0x0D)
@@ -116,9 +116,9 @@ static getSimpleTypeName(iAddress)
     else if (aTypeId == 0x11)
         return "qword";
     else if (aTypeId == 0x12)
-        return "wchar_ptr";
+        return "helpers::WString";
     else if (aTypeId == 0x13)
-        return "char_ptr";
+        return "helpers::String";
     else if (aTypeId == 0x15)
         return "word";
     else if (aTypeId == 0x16)
@@ -132,7 +132,7 @@ static getSimpleTypeName(iAddress)
     else if (aTypeId == 0x1A)
         return "word3";
     else if (aTypeId == 0x1B)
-        return "fileref";
+        return "helpers::FileName";
     else
         return "ERROR";
 }
@@ -380,8 +380,9 @@ static parseStructTab(aChunkName, iANSTructTabOffset, iNbOfVersions, iOutputFile
             {
                 fprintf(iOutputFile, "/* Version: %d */\n", aLoopIndex);
             }
+            fprintf(iOutputFile, "\ntemplate <>\nstruct Gw2Struct%s<%d>{\n",aChunkName,aLoopIndex);
             aStructName = parseStruct(aLoopIndex, aCurrentAddress, aParsedStructsId, iOutputFile); 
-            fprintf(iOutputFile, "typedef %s Gw2Struct%s;\n\n",  aStructName, aChunkName);
+            fprintf(iOutputFile, "typedef %s Gw2Struct;\n};\n\n",aStructName,aChunkName);
         }
         aLoopIndex = aLoopIndex - 1;
     }
@@ -447,7 +448,8 @@ static main(void)
     Message("Parsing .rdata for chunk_infos.\n");
 
     aCurrentAddress = aMinRDataSeg;
-
+    auto counted;
+    counted=0;
     while (aCurrentAddress < aMaxRDataSeg)
     {
         if (IS_ASCII(aCurrentAddress) && IS_ASCII(aCurrentAddress + 1) && IS_ASCII(aCurrentAddress + 2) && (Byte(aCurrentAddress + 3) == 0 || IS_ASCII(aCurrentAddress + 3)))
@@ -476,6 +478,7 @@ static main(void)
                             fprintf(aOutputFile, " * Chunk: %s, versions: %d, strucTab: 0x%X\n", aChunkName, aNbOfVersions, aANSTructTabOffset);
                             fprintf(aOutputFile, " * ===============================================\n");
                             fprintf(aOutputFile, " */\n\n");
+                            fprintf(aOutputFile, "\ntemplate <uint16_t Version>\nstruct Gw2Struct%s;\n\n",aChunkName);
                             parseStructTab(aChunkName, aANSTructTabOffset, aNbOfVersions, aOutputFile);
                             fprintf(aOutputFile, "\n");
                         }
@@ -485,7 +488,11 @@ static main(void)
         }
 
         aCurrentAddress = aCurrentAddress + 4;
-  
+        counted++;
+        if (counted==300000)
+        {
+            break;
+        }
     }
 
     DeleteArray(aParsedTablesId);
