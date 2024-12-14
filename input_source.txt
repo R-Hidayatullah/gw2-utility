@@ -68311,3 +68311,147 @@ struct PackEulaV0 {
 
 typedef PackEulaV0 Gw2Struct;
 };
+
+
+/* ===============================================
+ * Chunk: pD6B, versions: 1, strucTab: 0x1423644F8
+ * ===============================================
+ */
+
+
+template <uint16_t Version>
+struct Gw2StructpD6B;
+
+/* ===============================================
+ * Chunk: 8K6B, versions: 1, strucTab: 0x142364BA8
+ * ===============================================
+ */
+
+
+template <uint16_t Version>
+struct Gw2Struct8K6B;
+
+
+/* ===============================================
+ * Chunk: mfst, versions: 3, strucTab: 0x1423AB260
+ * ===============================================
+ */
+
+
+template <uint16_t Version>
+struct Gw2Structmfst;
+
+/* Version: 2, ReferencedFunction: 0x4177A39000000001 */
+
+template <>
+struct Gw2Structmfst<2>{
+struct ContentMapRedirector {
+    byte16 mapGUID;
+    dword token;
+    float3 position;
+    float radius;
+};
+
+struct ContentMapModel {
+    helpers::FileName filename;
+    dword flags;
+    dword type;
+    qword permutation;
+};
+
+struct ContentMapStart {
+    dword token;
+    helpers::Array<ContentMapModel> modelArray;
+    float3 position;
+    float radius;
+};
+
+struct ContentMap {
+    byte16 mapGUID;
+    helpers::Array<ContentMapRedirector> mapRedirectorArray;
+    helpers::Array<ContentMapStart> mapStartArray;
+};
+
+struct ContentPortalManifest {
+    helpers::Array<ContentMap> mapArray;
+};
+
+typedef ContentPortalManifest Gw2Struct;
+};
+
+/* Version: 1, ReferencedFunction: 0x1 */
+
+template <>
+struct Gw2Structmfst<1>{
+struct ContentMapRedirectorV1 {
+    dword mapId;
+    dword token;
+    float3 position;
+    float radius;
+};
+
+struct ContentMapModelV1 {
+    helpers::FileName filename;
+    dword flags;
+    dword type;
+    qword permutation;
+};
+
+struct ContentMapStartV1 {
+    dword token;
+    helpers::Array<ContentMapModelV1> modelArray;
+    float3 position;
+    float radius;
+};
+
+struct ContentMapV1 {
+    dword mapId;
+    helpers::Array<ContentMapRedirectorV1> mapRedirectorArray;
+    helpers::Array<ContentMapStartV1> mapStartArray;
+};
+
+struct ContentPortalManifestV1 {
+    helpers::Array<ContentMapV1> mapArray;
+};
+
+typedef ContentPortalManifestV1 Gw2Struct;
+};
+
+/* Version: 0, ReferencedFunction: 0x1 */
+
+template <>
+struct Gw2Structmfst<0>{
+struct ContentMapRedirectorV0 {
+    dword mapId;
+    dword token;
+    float3 position;
+    float radius;
+};
+
+struct ContentMapModelV0 {
+    helpers::FileName filename;
+    dword flags;
+    dword type;
+};
+
+struct ContentMapStartV0 {
+    dword token;
+    helpers::Array<ContentMapModelV0> modelArray;
+    float3 position;
+    float radius;
+};
+
+struct ContentMapV0 {
+    dword mapId;
+    helpers::Array<ContentMapRedirectorV0> mapRedirectorArray;
+    helpers::Array<ContentMapStartV0> mapStartArray;
+};
+
+struct ContentPortalManifestV0 {
+    helpers::Array<ContentMapV0> mapArray;
+};
+
+typedef ContentPortalManifestV0 Gw2Struct;
+};
+
+
