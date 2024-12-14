@@ -346,8 +346,8 @@ static parseStruct(aLoopIndex, iAddress, iParsedStructsId, iOutputFile)
 
     if (!aAlreadyParsed)
     {
-        //aOutput = form("struct %s {\n%s\npublic:\n    %s();\n    %s &operator=(const %s &p_other);\n    %s(const byte *p_data, size_t p_size, const byte **po_pointer = nullptr);\n    %s(const %s &p_other);\n    const byte *assign(const byte *p_data, size_t p_size);\n};\n\n",aStructName, aOutput, aStructName, aStructName, aStructName, aStructName, aStructName, aStructName);
-        aOutput = form("struct %s {\n%s};\n\n",aStructName, aOutput);
+        aOutput = form("struct %s {\n%s\npublic:\n    %s();\n    %s(const byte *p_data, size_t p_size, const byte **po_pointer = nullptr);\n    %s(const %s &p_other);\n    %s &operator=(const %s &p_other);\n    const byte *assign(const byte *p_data, size_t p_size);\n};\n\n",aStructName, aOutput, aStructName, aStructName, aStructName, aStructName, aStructName, aStructName);
+        //aOutput = form("struct %s {\n%s};\n\n",aStructName, aOutput);
         fprintf(iOutputFile, "%s", aOutput);
     }
 
@@ -401,7 +401,7 @@ static main(void)
     auto aChunkName, aNbOfVersions, aANSTructTabOffset;
 
     auto aOutputFile, aReportFile;
-    aOutputFile = fopen("input_source.txt", "w");
+    aOutputFile = fopen("input_header.txt", "w");
 
     Message("ANet structs script started.\n");
 
@@ -479,8 +479,11 @@ static main(void)
                             fprintf(aOutputFile, " * ===============================================\n");
                             fprintf(aOutputFile, " */\n\n");
                             fprintf(aOutputFile, "\ntemplate <uint16_t Version>\nstruct Gw2Struct%s;\n\n",aChunkName);
+                            if (aChunkName!="pD6B")
+                            {
                             parseStructTab(aChunkName, aANSTructTabOffset, aNbOfVersions, aOutputFile);
                             fprintf(aOutputFile, "\n");
+                            }
                         }
                     }
                 }
