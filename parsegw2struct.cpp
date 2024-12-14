@@ -199,7 +199,7 @@ std::string generateCopyConstructor(const std::string &structDefinition, const s
 std::string generateAssignmentOperator(const std::string &structDefinition, const std::string &structName, const std::vector<StructMember> &members)
 {
     std::ostringstream oss;
-    oss << structDefinition << "::" << structName << "& " << structName << "::operator=(const " << structName << "& p_other) {\n";
+    oss << structDefinition << "::" << structName << "& " << structDefinition << "::" << structName << "::operator=(const " << structName << "& p_other) {\n";
     for (const auto &member : members)
     {
         if (member.memberType == MemberType::Array)
@@ -633,7 +633,7 @@ int main()
     std::string outputDirSource = "source/fourcc";    // Directory to save generated files
 
     std::cout << "Started Parsing....\n";
-    processFile(inputFileHeader, outputDirHeader);
+    // processFile(inputFileHeader, outputDirHeader);
     std::cout << "Finished\n";
     processFileSource(inputFileSource, outputDirSource);
     std::cout << "Finished\n";
