@@ -9,9 +9,9 @@
 enum class MemberType
 {
     Primitive,
-    Array,
-    Helpers,
-    CustomHelpers,
+    Custom,
+    ArrayPrimitive,
+    ArrayCustom,
     Unknown
 };
 
@@ -93,42 +93,62 @@ std::pair<std::string, std::vector<StructMember>> parseStruct(const std::string 
         StructMember memberData;
         memberData.type = match[1].str();
         memberData.name = match[2].str();
+        memberData.name.erase(std::remove(memberData.name.begin(), memberData.name.end(), '.'), memberData.name.end());
 
-        // Determine member type
-        if (memberData.type.find("float2") != std::string::npos ||
-            memberData.type.find("float3") != std::string::npos ||
-            memberData.type.find("float4") != std::string::npos ||
-            memberData.type.find("word3") != std::string::npos ||
-            memberData.type.find("dword2") != std::string::npos ||
-            memberData.type.find("dword4") != std::string::npos ||
-            memberData.type.find("byte3") != std::string::npos ||
-            memberData.type.find("byte4") != std::string::npos ||
-            memberData.type.find("byte16") != std::string::npos)
+        if (memberData.type == "byte" ||
+            memberData.type == "word" ||
+            memberData.type == "dword" ||
+            memberData.type == "qword" ||
+            memberData.type == "int8" ||
+            memberData.type == "int16" ||
+            memberData.type == "int32" ||
+            memberData.type == "int64" ||
+            memberData.type == "uint8" ||
+            memberData.type == "uint16" ||
+            memberData.type == "uint32" ||
+            memberData.type == "uint64" ||
+            memberData.type == "char8" ||
+            memberData.type == "char16" ||
+            memberData.type == "char32" ||
+            memberData.type == "ushort" ||
+            memberData.type == "uint" ||
+            memberData.type == "ulong" ||
+            memberData.type == "float32" ||
+            memberData.type == "float64" ||
+            memberData.type == "float" ||
+            memberData.type == "double")
         {
-            memberData.memberTypeFirst = MemberType::CustomHelpers;
+            memberData.memberTypeFirst = MemberType::Primitive;
             memberData.memberTypeSecond = MemberType::Unknown;
-
-            if (match[3].matched) // Array detection
-            {
-                memberData.arraySize = match[3].str().substr(1, match[3].str().size() - 2);
-                memberData.memberTypeSecond = MemberType::Array;
-            }
+        }
+        else if (memberData.type == "float2" ||
+                 memberData.type == "float3" ||
+                 memberData.type == "float4" ||
+                 memberData.type == "word3" ||
+                 memberData.type == "dword2" ||
+                 memberData.type == "dword4" ||
+                 memberData.type == "byte3" ||
+                 memberData.type == "byte4" ||
+                 memberData.type == "byte16")
+        {
+            memberData.memberTypeFirst = MemberType::Custom;
+            memberData.memberTypeSecond = MemberType::Unknown;
         }
         else if (memberData.type.find("helpers::") != std::string::npos)
         {
-            memberData.memberTypeFirst = MemberType::Helpers;
-            memberData.memberTypeSecond = MemberType::Unknown;
-        }
-        else if (match[3].matched) // Array detection
-        {
-            memberData.arraySize = match[3].str().substr(1, match[3].str().size() - 2);
-            memberData.memberTypeFirst = MemberType::Array;
+            memberData.memberTypeFirst = MemberType::ArrayCustom;
             memberData.memberTypeSecond = MemberType::Unknown;
         }
         else
         {
-            memberData.memberTypeFirst = MemberType::Primitive;
+            memberData.memberTypeFirst = MemberType::Custom;
             memberData.memberTypeSecond = MemberType::Unknown;
+        }
+
+        if (match[3].matched)
+        {
+            memberData.arraySize = match[3].str().substr(1, match[3].str().size() - 2);
+            memberData.memberTypeSecond = MemberType::ArrayPrimitive;
         }
 
         members.push_back(memberData);
@@ -141,13 +161,16 @@ std::string generateConstructor(const std::string &structDefinition, const std::
 {
     std::ostringstream oss;
     oss << structDefinition << "::" << structName << "::" << structName << "()\n";
-    oss << "    : ";
     bool firstMember = true;
 
     for (size_t i = 0; i < members.size(); ++i)
     {
-        if (members[i].memberTypeFirst == MemberType::Primitive)
+        if (members[i].memberTypeFirst == MemberType::Primitive && members[i].memberTypeSecond == MemberType::Unknown)
         {
+            if (firstMember)
+            {
+                oss << "    : ";
+            }
             if (!firstMember)
             {
                 oss << ", ";
@@ -171,7 +194,7 @@ std::string generateCopyConstructor(const std::string &structDefinition, const s
     for (const auto &member : members)
     {
 
-        if (member.memberTypeFirst != MemberType::Array || member.memberTypeSecond != MemberType::Array)
+        if ((member.memberTypeFirst != MemberType::ArrayCustom && member.memberTypeSecond == MemberType::Unknown) || (member.memberTypeFirst == MemberType::Unknown && member.memberTypeSecond != MemberType::ArrayPrimitive))
         {
             if (!firstMember)
             {
@@ -185,7 +208,7 @@ std::string generateCopyConstructor(const std::string &structDefinition, const s
     for (const auto &member : members)
     {
 
-        if (member.memberTypeFirst == MemberType::Array || member.memberTypeSecond == MemberType::Array)
+        if ((member.memberTypeFirst == MemberType::ArrayCustom && member.memberTypeSecond != MemberType::Unknown) || (member.memberTypeFirst != MemberType::Unknown && member.memberTypeSecond == MemberType::ArrayPrimitive))
         {
             oss << "\nstd::copy(p_other." << member.name << ", p_other." << member.name << " + " << member.arraySize << ", " << member.name << ");";
         }
@@ -200,7 +223,7 @@ std::string generateAssignmentOperator(const std::string &structDefinition, cons
     oss << structDefinition << "::" << structName << "& " << structDefinition << "::" << structName << "::operator=(const " << structName << "& p_other) {\n";
     for (const auto &member : members)
     {
-        if (member.memberTypeFirst == MemberType::Array || member.memberTypeSecond == MemberType::Array)
+        if (member.memberTypeFirst != MemberType::ArrayCustom && member.memberTypeSecond == MemberType::ArrayPrimitive)
         {
             oss << "    std::copy(p_other." << member.name << ", p_other." << member.name << " + " << member.arraySize << ", " << member.name << ");\n";
         }
@@ -222,7 +245,7 @@ std::string generateAssignFunction(const std::string &structDefinition, const st
     for (const auto &member : members)
     {
 
-        if (member.memberTypeFirst == MemberType::Array)
+        if ((member.memberTypeFirst == MemberType::Primitive && member.memberTypeSecond == MemberType::ArrayPrimitive) || (member.memberTypeFirst == MemberType::Custom && member.memberTypeSecond == MemberType::ArrayPrimitive))
         {
             oss << "    std::copy(p_data, p_data + " << member.arraySize << ", " << member.name << ");\n";
         }
@@ -621,7 +644,7 @@ int main()
     std::string outputDirSource = "source/fourcc";    // Directory to save generated files
 
     std::cout << "Started Parsing....\n";
-    // processFile(inputFileHeader, outputDirHeader);
+    processFile(inputFileHeader, outputDirHeader);
     std::cout << "Finished\n";
     processFileSource(inputFileSource, outputDirSource);
     std::cout << "Finished\n";
