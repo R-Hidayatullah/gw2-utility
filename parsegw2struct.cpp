@@ -5,6 +5,7 @@
 #include <string>
 #include <algorithm>
 #include <cstdlib>
+
 enum class MemberType
 {
     Primitive,
@@ -17,37 +18,8 @@ struct StructMember
     std::string name;
     std::string type;
     MemberType memberType;
-    int arraySize = 0; // Default size for non-array members
+    std::string arraySize; // Default size for non-array members
 };
-
-StructMember parseMember(const std::string &declaration)
-{
-    std::regex arrayRegex(R"((\w+)\s+(\w+)\[(\d+)\];)");
-    std::regex PrimitiveRegex(R"((\w+)\s+(\w+);)");
-
-    std::smatch match;
-    StructMember member;
-
-    if (std::regex_match(declaration, match, arrayRegex))
-    {
-        member.type = match[1].str();
-        member.name = match[2].str();
-        member.memberType = MemberType::Array;
-        member.arraySize = std::stoi(match[3].str());
-    }
-    else if (std::regex_match(declaration, match, PrimitiveRegex))
-    {
-        member.type = match[1].str();
-        member.name = match[2].str();
-        member.memberType = MemberType::Primitive;
-    }
-    else
-    {
-        throw std::runtime_error("Unsupported member declaration: " + declaration);
-    }
-
-    return member;
-}
 
 std::string convertToRawStringLiteral(const std::string &normalString)
 {
@@ -115,26 +87,26 @@ std::pair<std::string, std::vector<StructMember>> parseStruct(const std::string 
     // Extract members of the struct
     while (std::regex_search(searchStart, structDef.cend(), match, memberRegex))
     {
-        StructMember member;
-        member.type = match[1].str();
-        member.name = match[2].str();
+        StructMember memberData;
+        memberData.type = match[1].str();
+        memberData.name = match[2].str();
 
         // Determine member type
-        if (member.type.find("helpers::") != std::string::npos)
+        if (memberData.type.find("helpers::") != std::string::npos)
         {
-            member.memberType = MemberType::Helpers;
+            memberData.memberType = MemberType::Helpers;
         }
         else if (match[3].matched) // Array detection
         {
-            member.name += match[3].str(); // Append array part to the name
-            member.memberType = MemberType::Array;
+            memberData.arraySize = match[3].str(); // Append array part to the name
+            memberData.memberType = MemberType::Array;
         }
         else
         {
-            member.memberType = MemberType::Primitive;
+            memberData.memberType = MemberType::Primitive;
         }
 
-        members.push_back(member);
+        members.push_back(memberData);
         searchStart = match.suffix().first;
     }
 
@@ -148,7 +120,7 @@ std::string generateConstructor(const std::string &structDefinition, const std::
 
     for (size_t i = 0; i < members.size(); ++i)
     {
-        if (members[i].memberType != MemberType::Helpers)
+        if (members[i].memberType == MemberType::Primitive)
         {
             oss << members[i].name << "(0)";
             if (i != members.size() - 1)
@@ -171,28 +143,29 @@ std::string generateCopyConstructor(const std::string &structDefinition, const s
     bool firstMember = true;
     for (const auto &member : members)
     {
-        if (member.memberType == MemberType::Helpers)
-        {
-            continue;
-        }
 
         if (!firstMember)
         {
             oss << ", ";
         }
 
-        if (member.memberType == MemberType::Array)
-        {
-            oss << "std::copy(p_other." << member.name << ", p_other." << member.name << " + " << member.arraySize << ", " << member.name << ")";
-        }
-        else
+        if (member.memberType != MemberType::Array)
         {
             oss << member.name << "(p_other." << member.name << ")";
         }
 
         firstMember = false;
     }
-    oss << " {}\n";
+    oss << " {";
+    for (const auto &member : members)
+    {
+
+        if (member.memberType == MemberType::Array)
+        {
+            oss << "\nstd::copy(p_other." << member.name << ", p_other." << member.name << " + " << member.arraySize << ", " << member.name << ");";
+        }
+    }
+    oss << "\n}\n";
 
     return oss.str();
 }
@@ -243,20 +216,6 @@ std::string generateCustomConstructor(const std::string &structDefinition, const
 {
     std::ostringstream oss;
     oss << structDefinition << "::" << structName << "::" << structName << "(const byte* p_data, size_t p_size, const byte** po_pointer)\n";
-    oss << "    : ";
-
-    // Generate the member initializations
-    for (size_t i = 0; i < members.size(); ++i)
-    {
-        if (members[i].memberType != MemberType::Helpers)
-        {
-            oss << members[i].name << "(0)";
-            if (i != members.size() - 1)
-            {
-                oss << ", ";
-            }
-        }
-    }
     oss << " {\n";
     oss << "    auto pointer = assign(p_data, p_size);\n";
     oss << "    if (po_pointer)\n";
@@ -290,6 +249,7 @@ std::string generateOOPCodeForStruct(const std::string &structDefinition, const 
 
     return oss.str();
 }
+
 std::string processAllStructs(const std::string &input)
 {
     // Preprocess input to handle multi-line definitions
@@ -297,10 +257,13 @@ std::string processAllStructs(const std::string &input)
 
     // Regex to match each version block
     std::regex versionBlockRegex(R"(/[*]+\s*Version:\s*(\d+)\s*,.*?\*/\s*template\s*<>\s*struct\s*(Gw2Struct\w+<\d+>)\s*\{)");
+    // /[*]+\s*Version:\s*(\d+)\s*,.*?\*/\s*template\s*<>\s*struct\s*(Gw2Struct\w+<\d+>)\s*\{([^*]*};)
     std::smatch match;
 
     std::string::const_iterator searchStart(processedInput.cbegin());
     std::string output;
+
+    int counted = 0;
 
     while (std::regex_search(searchStart, processedInput.cend(), match, versionBlockRegex))
     {
@@ -312,7 +275,7 @@ std::string processAllStructs(const std::string &input)
 
         // Find the full block for the struct
         size_t startPos = match.suffix().first - processedInput.begin();
-        size_t endPos = processedInput.find("};", startPos);
+        size_t endPos = processedInput.find("typedef", startPos);
         if (endPos == std::string::npos)
         {
             throw std::runtime_error("Unmatched struct block!");
@@ -325,20 +288,20 @@ std::string processAllStructs(const std::string &input)
         std::regex structDefRegex(R"(\bstruct\s+(\w+)\s*\{([^}]*)\})");
         std::smatch structMatch;
         std::string::const_iterator structSearchStart(structBlock.cbegin());
-
         while (std::regex_search(structSearchStart, structBlock.cend(), structMatch, structDefRegex))
         {
             std::string structName = structMatch[1].str();
             std::string structBody = structMatch[2].str();
 
-            std::cout << "Found struct: " << structName << "\n";
+            // std::cout << "Found struct: " << structName << "\n";
 
             // Generate OOP code for this struct
             output += generateOOPCodeForStruct(structDefinition, "struct " + structName + " {" + structBody + "};");
 
             structSearchStart = structMatch.suffix().first;
+            counted++;
         }
-
+        std::cout << "\nHave been found : " << counted << " structs\n\n";
         searchStart = processedInput.begin() + endPos + 2; // Move past the current block
     }
 
