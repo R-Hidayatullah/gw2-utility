@@ -11,14 +11,16 @@ enum class MemberType
     Primitive,
     Array,
     Helpers,
-    CustomHelpers
+    CustomHelpers,
+    Unknown
 };
 
 struct StructMember
 {
     std::string name;
     std::string type;
-    MemberType memberType;
+    MemberType memberTypeFirst;
+    MemberType memberTypeSecond;
     std::string arraySize; // Default size for non-array members
 };
 
@@ -103,20 +105,30 @@ std::pair<std::string, std::vector<StructMember>> parseStruct(const std::string 
             memberData.type.find("byte4") != std::string::npos ||
             memberData.type.find("byte16") != std::string::npos)
         {
-            memberData.memberType = MemberType::CustomHelpers;
+            memberData.memberTypeFirst = MemberType::CustomHelpers;
+            memberData.memberTypeSecond = MemberType::Unknown;
+
+            if (match[3].matched) // Array detection
+            {
+                memberData.arraySize = match[3].str().substr(1, match[3].str().size() - 2);
+                memberData.memberTypeSecond = MemberType::Array;
+            }
         }
         else if (memberData.type.find("helpers::") != std::string::npos)
         {
-            memberData.memberType = MemberType::Helpers;
+            memberData.memberTypeFirst = MemberType::Helpers;
+            memberData.memberTypeSecond = MemberType::Unknown;
         }
         else if (match[3].matched) // Array detection
         {
             memberData.arraySize = match[3].str().substr(1, match[3].str().size() - 2);
-            memberData.memberType = MemberType::Array;
+            memberData.memberTypeFirst = MemberType::Array;
+            memberData.memberTypeSecond = MemberType::Unknown;
         }
         else
         {
-            memberData.memberType = MemberType::Primitive;
+            memberData.memberTypeFirst = MemberType::Primitive;
+            memberData.memberTypeSecond = MemberType::Unknown;
         }
 
         members.push_back(memberData);
@@ -134,7 +146,7 @@ std::string generateConstructor(const std::string &structDefinition, const std::
 
     for (size_t i = 0; i < members.size(); ++i)
     {
-        if (members[i].memberType == MemberType::Primitive)
+        if (members[i].memberTypeFirst == MemberType::Primitive)
         {
             if (!firstMember)
             {
@@ -159,7 +171,7 @@ std::string generateCopyConstructor(const std::string &structDefinition, const s
     for (const auto &member : members)
     {
 
-        if (member.memberType != MemberType::Array)
+        if (member.memberTypeFirst != MemberType::Array || member.memberTypeSecond != MemberType::Array)
         {
             if (!firstMember)
             {
@@ -173,7 +185,7 @@ std::string generateCopyConstructor(const std::string &structDefinition, const s
     for (const auto &member : members)
     {
 
-        if (member.memberType == MemberType::Array)
+        if (member.memberTypeFirst == MemberType::Array || member.memberTypeSecond == MemberType::Array)
         {
             oss << "\nstd::copy(p_other." << member.name << ", p_other." << member.name << " + " << member.arraySize << ", " << member.name << ");";
         }
@@ -188,7 +200,7 @@ std::string generateAssignmentOperator(const std::string &structDefinition, cons
     oss << structDefinition << "::" << structName << "& " << structDefinition << "::" << structName << "::operator=(const " << structName << "& p_other) {\n";
     for (const auto &member : members)
     {
-        if (member.memberType == MemberType::Array)
+        if (member.memberTypeFirst == MemberType::Array || member.memberTypeSecond == MemberType::Array)
         {
             oss << "    std::copy(p_other." << member.name << ", p_other." << member.name << " + " << member.arraySize << ", " << member.name << ");\n";
         }
@@ -210,7 +222,7 @@ std::string generateAssignFunction(const std::string &structDefinition, const st
     for (const auto &member : members)
     {
 
-        if (member.memberType == MemberType::Array)
+        if (member.memberTypeFirst == MemberType::Array)
         {
             oss << "    std::copy(p_data, p_data + " << member.arraySize << ", " << member.name << ");\n";
         }
