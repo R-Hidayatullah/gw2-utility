@@ -98,7 +98,7 @@ std::pair<std::string, std::vector<StructMember>> parseStruct(const std::string 
         }
         else if (match[3].matched) // Array detection
         {
-            memberData.arraySize = match[3].str(); // Append array part to the name
+            memberData.arraySize = match[3].str().substr(1, match[3].str().size() - 2);
             memberData.memberType = MemberType::Array;
         }
         else
@@ -117,16 +117,18 @@ std::string generateConstructor(const std::string &structDefinition, const std::
     std::ostringstream oss;
     oss << structDefinition << "::" << structName << "::" << structName << "()\n";
     oss << "    : ";
+    bool firstMember = true;
 
     for (size_t i = 0; i < members.size(); ++i)
     {
         if (members[i].memberType == MemberType::Primitive)
         {
-            oss << members[i].name << "(0)";
-            if (i != members.size() - 1)
+            if (!firstMember)
             {
                 oss << ", ";
             }
+            oss << members[i].name << "(0)";
+            firstMember = false;
         }
     }
     oss << " {}\n";
@@ -144,17 +146,15 @@ std::string generateCopyConstructor(const std::string &structDefinition, const s
     for (const auto &member : members)
     {
 
-        if (!firstMember)
-        {
-            oss << ", ";
-        }
-
         if (member.memberType != MemberType::Array)
         {
+            if (!firstMember)
+            {
+                oss << ", ";
+            }
             oss << member.name << "(p_other." << member.name << ")";
+            firstMember = false;
         }
-
-        firstMember = false;
     }
     oss << " {";
     for (const auto &member : members)
