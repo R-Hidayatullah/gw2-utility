@@ -10,7 +10,8 @@ enum class MemberType
 {
     Primitive,
     Array,
-    Helpers
+    Helpers,
+    CustomHelpers
 };
 
 struct StructMember
@@ -92,7 +93,19 @@ std::pair<std::string, std::vector<StructMember>> parseStruct(const std::string 
         memberData.name = match[2].str();
 
         // Determine member type
-        if (memberData.type.find("helpers::") != std::string::npos)
+        if (memberData.type.find("float2") != std::string::npos ||
+            memberData.type.find("float3") != std::string::npos ||
+            memberData.type.find("float4") != std::string::npos ||
+            memberData.type.find("word3") != std::string::npos ||
+            memberData.type.find("dword2") != std::string::npos ||
+            memberData.type.find("dword4") != std::string::npos ||
+            memberData.type.find("byte3") != std::string::npos ||
+            memberData.type.find("byte4") != std::string::npos ||
+            memberData.type.find("byte16") != std::string::npos)
+        {
+            memberData.memberType = MemberType::CustomHelpers;
+        }
+        else if (memberData.type.find("helpers::") != std::string::npos)
         {
             memberData.memberType = MemberType::Helpers;
         }
