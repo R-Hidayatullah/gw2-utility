@@ -39,11 +39,11 @@ struct ChunkData {
         uint32 nbOfOffsets;
         nbOfOffsetsData=nbOfOffsets;
         uint32 offsets[nbOfOffsets];
+        ubyte unknown[chunkHeader.chunkSize -8-chunkHeader.offsetToOffsetTable-4-(nbOfOffsetsData*4)];
     }else{
         ubyte data[chunkHeader.chunkSize - 8];
     }
    
-    ubyte unknown[chunkHeader.chunkSize -8-chunkHeader.offsetToOffsetTable-4-(nbOfOffsetsData*4)];
 };
 
 
