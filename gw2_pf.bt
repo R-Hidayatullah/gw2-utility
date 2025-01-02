@@ -12,7 +12,8 @@
 //------------------------------------------------
 LittleEndian();
 
-struct {
+struct
+{
     char   magic[2];
     uint16 version;
     uint16 zero;
@@ -20,16 +21,18 @@ struct {
     char   type[4];
 } headerDat;
 
-struct ChunkHeader {
-    char magic[4];
-    uint32 chunkSize;
-    uint16 version;
-    uint16 headerSize;
-    uint32 offsetToOffsetTable;
+struct ChunkHeader
+{
+char magic[4];
+uint32 chunkSize;
+uint16 version;
+uint16 headerSize;
+uint32 offsetToOffsetTable;
 };
 
 
-struct ChunkData {
+struct ChunkData
+{
     ChunkHeader chunkHeader;
     local uint32 nbOfOffsetsData=0;
 
@@ -39,7 +42,8 @@ struct ChunkData {
         uint32 nbOfOffsets;
         nbOfOffsetsData=nbOfOffsets;
         uint32 offsets[nbOfOffsets];
-        ubyte unknown[chunkHeader.chunkSize -8-chunkHeader.offsetToOffsetTable-4-(nbOfOffsetsData*4)];
+        ubyte unknown[(chunkHeader.chunkSize - 8 - chunkHeader.offsetToOffsetTable - 4 - (nbOfOffsets * 4))];
+
     }else{
         ubyte data[chunkHeader.chunkSize - 8];
     }
@@ -47,6 +51,9 @@ struct ChunkData {
 };
 
 
+
 while(true){
-    ChunkData chunkData;
-}
+
+ChunkData chunkData;
+   
+    }

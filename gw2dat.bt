@@ -1,0 +1,62 @@
+//------------------------------------------------
+//--- 010 Editor v15.0.1 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+LittleEndian();
+
+typedef struct{
+    uint8 version;
+    char identifier[3]<optimize=true>;
+    uint32 header_size;
+    uint32 unknown_field;
+    uint32 chunk_size;
+    uint32 crc;
+    uint32 unknown_field_2;
+    uint64 mft_offset;
+    uint32 mft_size;
+    uint32 flag;
+}DatHeader;
+
+typedef struct{
+    char identifier[4]<optimize=true>;
+    uint64 unknown_field;
+    uint32 mft_entry_size;
+    uint32 unknown_field_2;
+    uint32 unknown_field_3;    
+}MftHeader;
+
+typedef struct {
+    uint64 offset;
+    uint32 size;
+    uint16 compression_flag;
+    uint16 entry_flag;
+    uint32 counter;
+    uint32 crc;
+}MftData;
+
+typedef struct{
+    uint32 file_id;
+    uint32 base_id;
+}MftIndexData;
+
+
+
+DatHeader dat_header;
+uint8 header_chunk_padding[dat_header.chunk_size-dat_header.header_size]<optimize=true>;
+
+FSeek(dat_header.mft_offset); // Moves to the mft_offset
+
+MftHeader mft_header;
+MftData mft_data[(mft_header.mft_entry_size-1)]<optimize=true>;
+
+FSeek(mft_data[1].offset);
+
+MftIndexData mft_index_data[(mft_data[1].size/8)]<optimize=true>;
