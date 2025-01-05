@@ -1401,3 +1401,1486 @@ void __fastcall sub_140451750(_QWORD *a1, __int64 a2)
 }
 
 
+.rdata:0000000141B80BBF                 db    0
+.rdata:0000000141B80BC0 ; unsigned __int8 byte_141B80BC0[320]
+.rdata:0000000141B80BC0 byte_141B80BC0  db 0, 1, 2, 3, 2 dup(4), 2 dup(5), 4 dup(6), 4 dup(7)
+.rdata:0000000141B80BC0                                         ; DATA XREF: sub_140464630+11↑o
+.rdata:0000000141B80BC0                                         ; sub_140464630+45↑o
+.rdata:0000000141B80BD0                 db 8 dup(8), 8 dup(9), 0, 1, 2, 3, 4, 5, 6, 7, 2 dup(8)
+.rdata:0000000141B80BEA                 db 2 dup(9), 2 dup(0Ah), 2 dup(0Bh), 4 dup(0Ch), 4 dup(0Dh)
+.rdata:0000000141B80BF8                 db 4 dup(0Eh), 4 dup(0Fh), 8 dup(10h), 8 dup(11h), 8 dup(12h)
+.rdata:0000000141B80C18                 db 8 dup(13h), 10h dup(14h), 10h dup(15h), 10h dup(16h)
+.rdata:0000000141B80C50                 db 10h dup(17h), 20h dup(18h), 20h dup(19h), 20h dup(1Ah)
+.rdata:0000000141B80CC0                 db 1Fh dup(1Bh), 1Ch, 4 dup(0), 2 dup(1), 2 dup(2), 2 dup(3)
+.rdata:0000000141B80CEA                 db 2 dup(4), 2 dup(5), 2 dup(6), 2 dup(7), 2 dup(8), 2 dup(9)
+.rdata:0000000141B80CF6                 db 2 dup(0Ah), 2 dup(0Bh), 2 dup(0Ch), 2 dup(0Dh), 2 dup(0Eh)
+.rdata:0000000141B80D00 unk_141B80D00   db    0                 ; DATA XREF: sub_140468B70:loc_140468BC1↑o
+.rdata:0000000141B80D01                 db    0
+
+
+__int64 __fastcall sub_1404646B0(__int64 a1, __int64 a2, unsigned int a3, __int64 a4, unsigned int a5)
+{
+  unsigned int v5; // eax
+  int *v7; // r8
+  unsigned int v8; // eax
+  int v9; // edx
+  int v10; // ecx
+  int v11; // edi
+  __int64 v12; // rdx
+  __int64 v13; // rdx
+  _QWORD *v14; // r12
+  unsigned int v15; // eax
+  unsigned int v16; // eax
+  __m128i *v17; // rdi
+  __m128i *v18; // rsi
+  __m128i i; // xmm0
+  __int64 v20; // rcx
+  unsigned int v21; // eax
+  unsigned int v22; // eax
+  __m128i *v23; // rdi
+  __m128i *v24; // rsi
+  __m128i i6; // xmm0
+  __int64 i7; // rcx
+  unsigned int v27; // eax
+  unsigned int v28; // eax
+  __m128i *v29; // rdi
+  __m128i *v30; // rsi
+  __m128i i4; // xmm0
+  __int64 i5; // rcx
+  unsigned int v33; // eax
+  unsigned int v34; // eax
+  __m128i *v35; // rdi
+  __m128i *v36; // rsi
+  __m128i i2; // xmm0
+  __int64 i3; // rcx
+  unsigned int v39; // eax
+  unsigned int v40; // eax
+  __m128i *v41; // rdi
+  __m128i *v42; // rsi
+  __m128i nn; // xmm0
+  __int64 i1; // rcx
+  unsigned int v45; // eax
+  unsigned int v46; // eax
+  __m128i *v47; // rdi
+  __m128i *v48; // rsi
+  __m128i kk; // xmm0
+  __int64 mm; // rcx
+  unsigned int v51; // eax
+  unsigned int v52; // eax
+  __m128i *v53; // rdi
+  __m128i *v54; // rsi
+  __m128i jj; // xmm0
+  __int64 v56; // rcx
+  unsigned int v57; // eax
+  unsigned int v58; // eax
+  __m128i *v59; // rdi
+  __m128i *v60; // rsi
+  __m128i n; // xmm0
+  __int64 ii; // rcx
+  _QWORD *v63; // rax
+  unsigned int v64; // eax
+  unsigned int v65; // eax
+  __m128i *v66; // rdi
+  __m128i *v67; // rsi
+  __m128i k; // xmm0
+  __int64 m; // rcx
+  unsigned int v70; // eax
+  unsigned int v71; // eax
+  __m128i *v72; // rdi
+  __m128i *v73; // rsi
+  __m128i j; // xmm0
+  unsigned int v75; // r8d
+  BOOL v76; // r13d
+  unsigned int v77; // r14d
+  unsigned int v78; // r12d
+  int v79; // r15d
+  unsigned int v80; // esi
+  __int64 v81; // rax
+  int v82; // esi
+  __int64 v83; // rdi
+  int v84; // ecx
+  unsigned int v85; // esi
+  unsigned int v86; // ecx
+  __int64 v87; // rsi
+  __int64 v88; // rdi
+  __int64 v89; // r14
+  int v90; // eax
+  unsigned int v91; // edi
+  unsigned int v92; // eax
+  _WORD *v93; // r14
+  unsigned __int16 *v94; // r15
+  unsigned int *v95; // r12
+  _WORD *v96; // r13
+  __int64 v97; // rax
+  int v98; // ecx
+  __int64 v99; // rcx
+  __int64 v100; // rcx
+  unsigned int *v101; // rsi
+  unsigned int v102; // edi
+  unsigned int v103; // esi
+  unsigned int v104; // eax
+  int v105; // eax
+  unsigned int v106; // edi
+  unsigned int v107; // eax
+  _WORD *v108; // r14
+  unsigned __int16 *v109; // r15
+  unsigned int *v110; // r12
+  _WORD *v111; // r13
+  __int64 v112; // rax
+  int v113; // ecx
+  __int64 v114; // rcx
+  __int64 v115; // rcx
+  unsigned int *v116; // rsi
+  unsigned int v117; // edi
+  unsigned int v118; // esi
+  unsigned int v119; // eax
+  int v120; // eax
+  __int64 v121; // rdi
+  __int64 v122; // rsi
+  __int64 v123; // r14
+  unsigned int v124; // ecx
+  int v125; // edi
+  __int64 v126; // rdi
+  unsigned int v127; // edi
+  unsigned int v128; // eax
+  _WORD *v129; // r14
+  unsigned __int16 *v130; // r15
+  unsigned int *v131; // r12
+  _WORD *v132; // r13
+  __int64 v133; // rax
+  int v134; // ecx
+  __int64 v135; // rcx
+  __int64 v136; // rcx
+  unsigned int *v137; // rsi
+  unsigned int v138; // edi
+  unsigned int v139; // esi
+  unsigned int v140; // eax
+  int v141; // eax
+  unsigned int v142; // edi
+  unsigned int v143; // eax
+  _WORD *v144; // r14
+  unsigned __int16 *v145; // r15
+  unsigned int *v146; // r12
+  _WORD *v147; // r13
+  __int64 v148; // rax
+  int v149; // ecx
+  __int64 v150; // rcx
+  __int64 v151; // rcx
+  unsigned int *v152; // rsi
+  unsigned int v153; // edi
+  unsigned int v154; // esi
+  unsigned int v155; // eax
+  int v156; // eax
+  int v157; // eax
+  __int64 result; // rax
+  _QWORD *v159; // [rsp+50h] [rbp-B0h]
+  unsigned int v160; // [rsp+58h] [rbp-A8h]
+  unsigned int v161; // [rsp+60h] [rbp-A0h] BYREF
+  int v162; // [rsp+68h] [rbp-98h] BYREF
+  __int64 v163; // [rsp+70h] [rbp-90h]
+  __int64 v164; // [rsp+78h] [rbp-88h] BYREF
+  int v165; // [rsp+80h] [rbp-80h]
+  unsigned int v166; // [rsp+84h] [rbp-7Ch]
+  unsigned int v167; // [rsp+88h] [rbp-78h] BYREF
+  int v168; // [rsp+90h] [rbp-70h] BYREF
+  __int64 v169; // [rsp+98h] [rbp-68h]
+  __int64 v170; // [rsp+A0h] [rbp-60h]
+  int v171; // [rsp+A8h] [rbp-58h] BYREF
+  __int64 v172; // [rsp+B0h] [rbp-50h]
+  __int64 v173; // [rsp+B8h] [rbp-48h]
+  BOOL v174; // [rsp+C0h] [rbp-40h]
+  __int64 v175; // [rsp+C4h] [rbp-3Ch] BYREF
+  int v176; // [rsp+CCh] [rbp-34h]
+  int v177; // [rsp+D0h] [rbp-30h]
+  int v178; // [rsp+D8h] [rbp-28h] BYREF
+  int v179; // [rsp+E0h] [rbp-20h] BYREF
+  int v180; // [rsp+E4h] [rbp-1Ch]
+  __int64 v181; // [rsp+E8h] [rbp-18h]
+  unsigned int v182; // [rsp+F0h] [rbp-10h]
+  __int64 v183; // [rsp+F8h] [rbp-8h]
+  _BYTE v184[16]; // [rsp+100h] [rbp+0h] BYREF
+  __int64 v185; // [rsp+110h] [rbp+10h]
+  __int64 v186; // [rsp+128h] [rbp+28h]
+  _DWORD v187[10]; // [rsp+138h] [rbp+38h] BYREF
+  int v188; // [rsp+160h] [rbp+60h] BYREF
+  _WORD *v189; // [rsp+168h] [rbp+68h]
+  __int64 v190; // [rsp+170h] [rbp+70h]
+  int v191; // [rsp+178h] [rbp+78h]
+  int v192; // [rsp+180h] [rbp+80h] BYREF
+  unsigned __int16 *v193; // [rsp+188h] [rbp+88h]
+  __int64 v194; // [rsp+190h] [rbp+90h]
+  int v195; // [rsp+198h] [rbp+98h]
+  int v196; // [rsp+1A0h] [rbp+A0h] BYREF
+  unsigned int *v197; // [rsp+1A8h] [rbp+A8h]
+  __int64 v198; // [rsp+1B0h] [rbp+B0h] BYREF
+  int v199; // [rsp+1B8h] [rbp+B8h]
+  _DWORD v200[314]; // [rsp+1C0h] [rbp+C0h] BYREF
+  _DWORD v201[32]; // [rsp+6A8h] [rbp+5A8h] BYREF
+  _DWORD v202[124]; // [rsp+728h] [rbp+628h] BYREF
+  int v203; // [rsp+918h] [rbp+818h]
+  _BYTE v204[40]; // [rsp+920h] [rbp+820h] BYREF
+
+  v5 = *(_DWORD *)(a1 + 16);
+  v166 = a3;
+  v7 = (int *)(a1 + 20);
+  v181 = a2;
+  v183 = a4;
+  v182 = a5;
+  if ( v5 >= 4 )
+  {
+    v8 = v5 - 4;
+    *(_DWORD *)(a1 + 16) = v8;
+    v9 = *v7 | (2 << v8);
+  }
+  else
+  {
+    if ( *(_QWORD *)a1 != *(_QWORD *)(a1 + 8) )
+    {
+      **(_DWORD **)a1 = *v7 | (2u >> (4 - v5));
+      *(_QWORD *)a1 += 4LL;
+    }
+    v8 = *(_DWORD *)(a1 + 16) + 28;
+    *(_DWORD *)(a1 + 16) = v8;
+    v9 = 2 << v8;
+  }
+  *v7 = v9;
+  if ( v8 >= 4 )
+  {
+    v10 = v8 - 4;
+    v11 = v9 | (5 << (v8 - 4));
+  }
+  else
+  {
+    if ( *(_QWORD *)a1 != *(_QWORD *)(a1 + 8) )
+    {
+      **(_DWORD **)a1 = v9 | (5u >> (4 - v8));
+      *(_QWORD *)a1 += 4LL;
+    }
+    v10 = *(_DWORD *)(a1 + 16) + 28;
+    v11 = 5 << (*(_BYTE *)(a1 + 16) + 28);
+  }
+  *(_DWORD *)(a1 + 16) = v10;
+  *v7 = v11;
+  sub_14024CE90();
+  v188 = 1;
+  v190 = 0LL;
+  v189 = 0LL;
+  v191 = 128;
+  sub_14024CE90();
+  v192 = 1;
+  v194 = 0LL;
+  v193 = 0LL;
+  v195 = 128;
+  sub_14024CE90();
+  v196 = 1;
+  v198 = 0LL;
+  v197 = 0LL;
+  v199 = 64;
+  sub_14026B670(&v188, 0x4000LL);
+  v12 = (unsigned int)v194;
+  v191 = 4096;
+  if ( (unsigned int)v194 <= HIDWORD(v194) + 6144 )
+    v12 = (unsigned int)(HIDWORD(v194) + 6144);
+  sub_14026B670(&v192, v12);
+  v13 = (unsigned int)v198;
+  if ( (unsigned int)v198 <= HIDWORD(v198) + 6144 )
+    v13 = (unsigned int)(HIDWORD(v198) + 6144);
+  sub_140294530(&v196, v13);
+  HIDWORD(v190) = 0;
+  HIDWORD(v194) = 0;
+  HIDWORD(v198) = 0;
+  v203 = 0;
+  sub_14024FE30(v200, 1256LL);
+  sub_14024FE30(v201, 128LL);
+  sub_14024FE30(v202, 496LL);
+  if ( a5 <= 0x200 )
+  {
+    v159 = (_QWORD *)sub_14027D6D0(56LL);
+    v14 = v159;
+    if ( v159 )
+    {
+      *v159 = &off_141B80EC0;
+      v15 = sub_14024F0B0();
+      sub_140463BF0(v159 + 1, 512LL, 1LL, v15);
+      v16 = sub_14024F0B0();
+      sub_140463BF0(v159 + 4, 512LL, 1LL, v16);
+      v17 = (__m128i *)v159[2];
+      v18 = v17 + 128;
+      if ( (unsigned int)sub_14027D5D0() )
+      {
+        for ( i = _mm_load_si128((const __m128i *)&xmmword_141B81210); v17 != v18; ++v17 )
+          _mm_stream_si128(v17, i);
+      }
+      else
+      {
+        v20 = 512LL;
+        if ( v17 <= v18 )
+        {
+          while ( v20 )
+          {
+            v17->m128i_i32[0] = -513;
+            v17 = (__m128i *)((char *)v17 + 4);
+            --v20;
+          }
+        }
+      }
+      goto LABEL_120;
+    }
+LABEL_119:
+    v159 = 0LL;
+    v14 = 0LL;
+    goto LABEL_120;
+  }
+  if ( a5 > 0x400 )
+  {
+    if ( a5 > 0x800 )
+    {
+      if ( a5 > 0x1000 )
+      {
+        if ( a5 > 0x2000 )
+        {
+          if ( a5 > 0x4000 )
+          {
+            if ( a5 > 0x10000 )
+            {
+              if ( a5 > 0x20000 )
+              {
+                v63 = (_QWORD *)sub_14027D6D0(56LL);
+                v159 = v63;
+                v14 = v63;
+                if ( a5 > 0x100000 )
+                {
+                  if ( !v63 )
+                    goto LABEL_119;
+                  *v63 = &off_141B80FE0;
+                  v70 = sub_14024F0B0();
+                  sub_140463BF0(v14 + 1, 0x1000000LL, 1LL, v70);
+                  v71 = sub_14024F0B0();
+                  sub_140463BF0(v14 + 4, a5, 1LL, v71);
+                  v72 = (__m128i *)v14[2];
+                  v73 = v72 + 0x400000;
+                  if ( (unsigned int)sub_14027D5D0() )
+                  {
+                    for ( j = _mm_load_si128((const __m128i *)&xmmword_141939DC0); v72 != v73; ++v72 )
+                      _mm_stream_si128(v72, j);
+                  }
+                  else if ( v72 <= v73 )
+                  {
+                    memset(v72, -1, 0x4000000uLL);
+                  }
+                }
+                else
+                {
+                  if ( !v63 )
+                    goto LABEL_119;
+                  *v63 = &off_141B80FC0;
+                  v64 = sub_14024F0B0();
+                  sub_140463BF0(v14 + 1, 0x100000LL, 1LL, v64);
+                  v65 = sub_14024F0B0();
+                  sub_140463BF0(v14 + 4, 0x100000LL, 1LL, v65);
+                  v66 = (__m128i *)v14[2];
+                  v67 = v66 + 0x40000;
+                  if ( (unsigned int)sub_14027D5D0() )
+                  {
+                    for ( k = _mm_load_si128((const __m128i *)&xmmword_141B81180); v66 != v67; ++v66 )
+                      _mm_stream_si128(v66, k);
+                  }
+                  else if ( v66 <= v67 )
+                  {
+                    for ( m = 0x100000LL; m; --m )
+                    {
+                      v66->m128i_i32[0] = -1048577;
+                      v66 = (__m128i *)((char *)v66 + 4);
+                    }
+                  }
+                }
+              }
+              else
+              {
+                v159 = (_QWORD *)sub_14027D6D0(56LL);
+                v14 = v159;
+                if ( !v159 )
+                  goto LABEL_119;
+                *v159 = &off_141B80FA0;
+                v57 = sub_14024F0B0();
+                sub_140463BF0(v159 + 1, 0x20000LL, 1LL, v57);
+                v58 = sub_14024F0B0();
+                sub_140463BF0(v159 + 4, 0x20000LL, 1LL, v58);
+                v59 = (__m128i *)v159[2];
+                v60 = v59 + 0x8000;
+                if ( (unsigned int)sub_14027D5D0() )
+                {
+                  for ( n = _mm_load_si128((const __m128i *)&xmmword_141B81190); v59 != v60; ++v59 )
+                    _mm_stream_si128(v59, n);
+                }
+                else if ( v59 <= v60 )
+                {
+                  for ( ii = 0x20000LL; ii; --ii )
+                  {
+                    v59->m128i_i32[0] = -131073;
+                    v59 = (__m128i *)((char *)v59 + 4);
+                  }
+                }
+              }
+            }
+            else
+            {
+              v159 = (_QWORD *)sub_14027D6D0(56LL);
+              v14 = v159;
+              if ( !v159 )
+                goto LABEL_119;
+              *v159 = &off_141B80F80;
+              v51 = sub_14024F0B0();
+              sub_140463BF0(v159 + 1, 0x10000LL, 1LL, v51);
+              v52 = sub_14024F0B0();
+              sub_140463BF0(v159 + 4, 0x10000LL, 1LL, v52);
+              v53 = (__m128i *)v159[2];
+              v54 = v53 + 0x4000;
+              if ( (unsigned int)sub_14027D5D0() )
+              {
+                for ( jj = _mm_load_si128((const __m128i *)&xmmword_141B811A0); v53 != v54; ++v53 )
+                  _mm_stream_si128(v53, jj);
+              }
+              else
+              {
+                v56 = 0x10000LL;
+                if ( v53 <= v54 )
+                {
+                  while ( v56 )
+                  {
+                    v53->m128i_i32[0] = -65537;
+                    v53 = (__m128i *)((char *)v53 + 4);
+                    --v56;
+                  }
+                }
+              }
+            }
+          }
+          else
+          {
+            v159 = (_QWORD *)sub_14027D6D0(56LL);
+            v14 = v159;
+            if ( !v159 )
+              goto LABEL_119;
+            *v159 = &off_141B80F60;
+            v45 = sub_14024F0B0();
+            sub_140463BF0(v159 + 1, 0x4000LL, 1LL, v45);
+            v46 = sub_14024F0B0();
+            sub_140463BF0(v159 + 4, 0x4000LL, 1LL, v46);
+            v47 = (__m128i *)v159[2];
+            v48 = v47 + 4096;
+            if ( (unsigned int)sub_14027D5D0() )
+            {
+              for ( kk = _mm_load_si128((const __m128i *)&xmmword_141B811C0); v47 != v48; ++v47 )
+                _mm_stream_si128(v47, kk);
+            }
+            else if ( v47 <= v48 )
+            {
+              for ( mm = 0x4000LL; mm; --mm )
+              {
+                v47->m128i_i32[0] = -16385;
+                v47 = (__m128i *)((char *)v47 + 4);
+              }
+            }
+          }
+        }
+        else
+        {
+          v159 = (_QWORD *)sub_14027D6D0(56LL);
+          v14 = v159;
+          if ( !v159 )
+            goto LABEL_119;
+          *v159 = &off_141B80F40;
+          v39 = sub_14024F0B0();
+          sub_140463BF0(v159 + 1, 0x2000LL, 1LL, v39);
+          v40 = sub_14024F0B0();
+          sub_140463BF0(v159 + 4, 0x2000LL, 1LL, v40);
+          v41 = (__m128i *)v159[2];
+          v42 = v41 + 2048;
+          if ( (unsigned int)sub_14027D5D0() )
+          {
+            for ( nn = _mm_load_si128((const __m128i *)&xmmword_141B811D0); v41 != v42; ++v41 )
+              _mm_stream_si128(v41, nn);
+          }
+          else if ( v41 <= v42 )
+          {
+            for ( i1 = 0x2000LL; i1; --i1 )
+            {
+              v41->m128i_i32[0] = -8193;
+              v41 = (__m128i *)((char *)v41 + 4);
+            }
+          }
+        }
+      }
+      else
+      {
+        v159 = (_QWORD *)sub_14027D6D0(56LL);
+        v14 = v159;
+        if ( !v159 )
+          goto LABEL_119;
+        *v159 = &off_141B80F20;
+        v33 = sub_14024F0B0();
+        sub_140463BF0(v159 + 1, 4096LL, 1LL, v33);
+        v34 = sub_14024F0B0();
+        sub_140463BF0(v159 + 4, 4096LL, 1LL, v34);
+        v35 = (__m128i *)v159[2];
+        v36 = v35 + 1024;
+        if ( (unsigned int)sub_14027D5D0() )
+        {
+          for ( i2 = _mm_load_si128((const __m128i *)&xmmword_141B811E0); v35 != v36; ++v35 )
+            _mm_stream_si128(v35, i2);
+        }
+        else if ( v35 <= v36 )
+        {
+          for ( i3 = 4096LL; i3; --i3 )
+          {
+            v35->m128i_i32[0] = -4097;
+            v35 = (__m128i *)((char *)v35 + 4);
+          }
+        }
+      }
+    }
+    else
+    {
+      v159 = (_QWORD *)sub_14027D6D0(56LL);
+      v14 = v159;
+      if ( !v159 )
+        goto LABEL_119;
+      *v159 = &off_141B80F00;
+      v27 = sub_14024F0B0();
+      sub_140463BF0(v159 + 1, 2048LL, 1LL, v27);
+      v28 = sub_14024F0B0();
+      sub_140463BF0(v159 + 4, 2048LL, 1LL, v28);
+      v29 = (__m128i *)v159[2];
+      v30 = v29 + 512;
+      if ( (unsigned int)sub_14027D5D0() )
+      {
+        for ( i4 = _mm_load_si128((const __m128i *)&xmmword_141B811F0); v29 != v30; ++v29 )
+          _mm_stream_si128(v29, i4);
+      }
+      else if ( v29 <= v30 )
+      {
+        for ( i5 = 2048LL; i5; --i5 )
+        {
+          v29->m128i_i32[0] = -2049;
+          v29 = (__m128i *)((char *)v29 + 4);
+        }
+      }
+    }
+  }
+  else
+  {
+    v159 = (_QWORD *)sub_14027D6D0(56LL);
+    v14 = v159;
+    if ( !v159 )
+      goto LABEL_119;
+    *v159 = &off_141B80EE0;
+    v21 = sub_14024F0B0();
+    sub_140463BF0(v159 + 1, 1024LL, 1LL, v21);
+    v22 = sub_14024F0B0();
+    sub_140463BF0(v159 + 4, 1024LL, 1LL, v22);
+    v23 = (__m128i *)v159[2];
+    v24 = v23 + 256;
+    if ( (unsigned int)sub_14027D5D0() )
+    {
+      for ( i6 = _mm_load_si128((const __m128i *)&xmmword_141B81200); v23 != v24; ++v23 )
+        _mm_stream_si128(v23, i6);
+    }
+    else if ( v23 <= v24 )
+    {
+      for ( i7 = 1024LL; i7; --i7 )
+      {
+        v23->m128i_i32[0] = -1025;
+        v23 = (__m128i *)((char *)v23 + 4);
+      }
+    }
+  }
+LABEL_120:
+  sub_140463C80(v204, v183, a5);
+  (*(void (__fastcall **)(_QWORD *, __int64, _QWORD, _QWORD, unsigned int, _BYTE *))(*v14 + 24LL))(
+    v14,
+    v183,
+    a5,
+    0LL,
+    a5,
+    v204);
+  sub_140463AF0(v184, v166);
+  sub_140463C80(v187, v181, v166);
+  v75 = v166;
+  v174 = 0;
+  v76 = 0;
+  v176 = 0;
+  v77 = 0;
+  v161 = 0;
+  v78 = 0;
+  v177 = 0;
+  v79 = 0;
+  v180 = 0;
+  LOBYTE(v80) = 0;
+  v165 = 0;
+  v178 = 0;
+  v160 = 0;
+  if ( v166 )
+  {
+    while ( 1 )
+    {
+      LODWORD(v175) = 0;
+      v81 = *v159;
+      v82 = v187[v80 & 7];
+      v179 = 0;
+      (*(void (__fastcall **)(_QWORD *, __int64, _QWORD, __int64, unsigned int, unsigned int, int, __int64 *, int *))(v81 + 8))(
+        v159,
+        v183,
+        v182,
+        v181,
+        v75,
+        v160,
+        v187[((_BYTE)v160 - 2) & 7] - v82,
+        &v175,
+        &v179);
+      v83 = v181;
+      HIDWORD(v175) = 0;
+      v167 = 0;
+      v84 = v187[((_BYTE)v160 + 3) & 7] - v82;
+      v85 = v160;
+      sub_14046B8F0((unsigned int)v184, v181, v166, v160, v84, (__int64)&v175 + 4, (__int64)&v167);
+      if ( v77 )
+      {
+        v86 = HIDWORD(v175);
+        if ( (unsigned int)v175 > HIDWORD(v175) )
+          v86 = v175;
+        if ( v77 >= v86 )
+        {
+          if ( v76 )
+          {
+            v87 = v77 - 3;
+            if ( (unsigned int)v87 >= 0x100 )
+              sub_1402898B0(
+                "length < arrsize(s_codeLength)",
+                "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp",
+                112LL);
+            v88 = (unsigned int)byte_141B80BC0[v87 + 32] + 256;
+            if ( v78 >= 0x20 )
+            {
+              v90 = sub_14027A120(v78);
+              v89 = ((v78 >> (v90 - 1)) & 1) + 2 * v90;
+            }
+            else
+            {
+              v89 = byte_141B80BC0[v78];
+            }
+            if ( (unsigned int)v88 >= 0x13A )
+              sub_1402898B0(
+                "litLenCode < arrsize(m_litLenFreq)",
+                "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp",
+                469LL);
+            if ( (unsigned int)v89 >= 0x20 )
+              sub_1402898B0(
+                "distCode < arrsize(m_distWindowFreq)",
+                "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp",
+                470LL);
+            ++v200[v88];
+            ++v201[v89];
+            *(_WORD *)sub_14046D560(&v188) = v87 + 256;
+            *(_WORD *)sub_14046D560(&v192) = v78;
+            if ( (v190 & 0xFFF00000000LL) == 0 )
+            {
+              if ( HIDWORD(v190) == 0x10000 )
+              {
+                sub_14024E030();
+                v162 = 3;
+                v164 = 0LL;
+                v163 = 0LL;
+                sub_14046FA80(&v162, 314LL, v200, a1);
+                sub_14024E030();
+                v171 = 3;
+                v173 = 0LL;
+                v172 = 0LL;
+                sub_14046FA80(&v171, 32LL, v201, a1);
+                sub_14024CE90();
+                v168 = 1;
+                v170 = 0LL;
+                v169 = 0LL;
+                sub_14046FA80(&v168, 124LL, v202, a1);
+                v91 = ((unsigned int)(HIDWORD(v190) + 4095) >> 12) - 1;
+                if ( v91 >= 0x10 )
+                  sub_1402898B0(
+                    "totalCode < 0x10",
+                    "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp",
+                    356LL);
+                if ( (v91 & 0xFFFFFFF0) != 0 )
+                  sub_1402898B0(
+                    "!(value & ~((1 << bitCount) - 1))",
+                    "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+                    139LL);
+                v92 = *(_DWORD *)(a1 + 16);
+                if ( v92 >= 4 )
+                {
+                  *(_DWORD *)(a1 + 20) |= v91 << (v92 - 4);
+                  *(_DWORD *)(a1 + 16) = v92 - 4;
+                }
+                else
+                {
+                  if ( *(_QWORD *)a1 != *(_QWORD *)(a1 + 8) )
+                  {
+                    **(_DWORD **)a1 = *(_DWORD *)(a1 + 20) | (v91 >> (4 - v92));
+                    *(_QWORD *)a1 += 4LL;
+                  }
+                  *(_DWORD *)(a1 + 16) += 28;
+                  *(_DWORD *)(a1 + 20) = v91 << *(_DWORD *)(a1 + 16);
+                }
+                v93 = v189;
+                v94 = v193;
+                v95 = v197;
+                v96 = &v189[HIDWORD(v190)];
+                if ( v189 != v96 )
+                {
+                  do
+                  {
+                    v97 = (unsigned __int16)*v93;
+                    v98 = *v93 & 0xFF00;
+                    if ( v98 )
+                    {
+                      if ( v98 == 256 )
+                      {
+                        sub_140468C90((unsigned int)(v97 - 256), 256LL, &v162, a1);
+                        v100 = *v94++;
+                        sub_140468A30(v100, &v171, a1);
+                      }
+                      else if ( v98 == 512 )
+                      {
+                        sub_140468C90((unsigned int)(v97 - 512), 285LL, &v162, a1);
+                        v99 = *v95++;
+                        sub_140468B70(v99, &v168, a1);
+                      }
+                    }
+                    else
+                    {
+                      v167 = (unsigned __int16)*v93;
+                      if ( (unsigned int)v97 >= HIDWORD(v164) )
+                      {
+                        sub_140244E10(
+                          (unsigned int)"D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Core\\Collections\\Array.h",
+                          690,
+                          (unsigned int)"Index: {}, Count: {}",
+                          (unsigned int)&v167,
+                          (__int64)&v164 + 4);
+                        __debugbreak();
+                      }
+                      v101 = (unsigned int *)(v163 + 8 * v97);
+                      if ( *v101 >= 0x20 )
+                        sub_1402898B0(
+                          "code.bitCount < 8 * sizeof(code.value)",
+                          "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpHuff.h",
+                          146LL);
+                      v102 = v101[1];
+                      v103 = *v101;
+                      if ( v103 >= 0x20 )
+                        sub_1402898B0(
+                          "bitCount < 8 * sizeof(value)",
+                          "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+                          138LL);
+                      if ( ((-1 << v103) & v102) != 0 )
+                        sub_1402898B0(
+                          "!(value & ~((1 << bitCount) - 1))",
+                          "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+                          139LL);
+                      v104 = *(_DWORD *)(a1 + 16);
+                      if ( v104 >= v103 )
+                      {
+                        v105 = v104 - v103;
+                        *(_DWORD *)(a1 + 16) = v105;
+                        *(_DWORD *)(a1 + 20) |= v102 << v105;
+                      }
+                      else
+                      {
+                        if ( *(_QWORD *)a1 != *(_QWORD *)(a1 + 8) )
+                        {
+                          **(_DWORD **)a1 = *(_DWORD *)(a1 + 20) | (v102 >> (v103 - v104));
+                          *(_QWORD *)a1 += 4LL;
+                        }
+                        *(_DWORD *)(a1 + 16) += 32 - v103;
+                        *(_DWORD *)(a1 + 20) = v102 << *(_DWORD *)(a1 + 16);
+                      }
+                    }
+                    ++v93;
+                  }
+                  while ( v93 != v96 );
+                }
+                HIDWORD(v190) = 0;
+                HIDWORD(v194) = 0;
+                HIDWORD(v198) = 0;
+                v203 = 0;
+                sub_14024FE30(v200, 1256LL);
+                sub_14024FE30(v201, 128LL);
+                sub_14024FE30(v202, 496LL);
+                if ( v169 )
+                  sub_14027D7E0(v169, 0LL, 0LL);
+                v169 = 0LL;
+                v170 = 0LL;
+                if ( v172 )
+                  sub_14027D7E0(v172, 0LL, 0LL);
+                v172 = 0LL;
+                v173 = 0LL;
+                if ( v163 )
+                  sub_14027D7E0(v163, 0LL, 0LL);
+                goto LABEL_171;
+              }
+              if ( (unsigned int)(2 * (HIDWORD(v194) + HIDWORD(v198)) - v203) < 0x1400 )
+              {
+                v203 = HIDWORD(v194) + HIDWORD(v198);
+              }
+              else if ( HIDWORD(v190) )
+              {
+                sub_14024E030();
+                v162 = 3;
+                v164 = 0LL;
+                v163 = 0LL;
+                sub_14046FA80(&v162, 314LL, v200, a1);
+                sub_14024E030();
+                v168 = 3;
+                v170 = 0LL;
+                v169 = 0LL;
+                sub_14046FA80(&v168, 32LL, v201, a1);
+                sub_14024CE90();
+                v171 = 1;
+                v173 = 0LL;
+                v172 = 0LL;
+                sub_14046FA80(&v171, 124LL, v202, a1);
+                v106 = ((unsigned int)(HIDWORD(v190) + 4095) >> 12) - 1;
+                if ( v106 >= 0x10 )
+                  sub_1402898B0(
+                    "totalCode < 0x10",
+                    "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp",
+                    356LL);
+                if ( (v106 & 0xFFFFFFF0) != 0 )
+                  sub_1402898B0(
+                    "!(value & ~((1 << bitCount) - 1))",
+                    "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+                    139LL);
+                v107 = *(_DWORD *)(a1 + 16);
+                if ( v107 >= 4 )
+                {
+                  *(_DWORD *)(a1 + 20) |= v106 << (v107 - 4);
+                  *(_DWORD *)(a1 + 16) = v107 - 4;
+                }
+                else
+                {
+                  if ( *(_QWORD *)a1 != *(_QWORD *)(a1 + 8) )
+                  {
+                    **(_DWORD **)a1 = *(_DWORD *)(a1 + 20) | (v106 >> (4 - v107));
+                    *(_QWORD *)a1 += 4LL;
+                  }
+                  *(_DWORD *)(a1 + 16) += 28;
+                  *(_DWORD *)(a1 + 20) = v106 << *(_DWORD *)(a1 + 16);
+                }
+                v108 = v189;
+                v109 = v193;
+                v110 = v197;
+                v111 = &v189[HIDWORD(v190)];
+                if ( v189 != v111 )
+                {
+                  do
+                  {
+                    v112 = (unsigned __int16)*v108;
+                    v113 = *v108 & 0xFF00;
+                    if ( v113 )
+                    {
+                      if ( v113 == 256 )
+                      {
+                        sub_140468C90((unsigned int)(v112 - 256), 256LL, &v162, a1);
+                        v115 = *v109++;
+                        sub_140468A30(v115, &v168, a1);
+                      }
+                      else if ( v113 == 512 )
+                      {
+                        sub_140468C90((unsigned int)(v112 - 512), 285LL, &v162, a1);
+                        v114 = *v110++;
+                        sub_140468B70(v114, &v171, a1);
+                      }
+                    }
+                    else
+                    {
+                      v167 = (unsigned __int16)*v108;
+                      if ( (unsigned int)v112 >= HIDWORD(v164) )
+                      {
+                        sub_140244E10(
+                          (unsigned int)"D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Core\\Collections\\Array.h",
+                          690,
+                          (unsigned int)"Index: {}, Count: {}",
+                          (unsigned int)&v167,
+                          (__int64)&v164 + 4);
+                        __debugbreak();
+                      }
+                      v116 = (unsigned int *)(v163 + 8 * v112);
+                      if ( *v116 >= 0x20 )
+                        sub_1402898B0(
+                          "code.bitCount < 8 * sizeof(code.value)",
+                          "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpHuff.h",
+                          146LL);
+                      v117 = v116[1];
+                      v118 = *v116;
+                      if ( v118 >= 0x20 )
+                        sub_1402898B0(
+                          "bitCount < 8 * sizeof(value)",
+                          "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+                          138LL);
+                      if ( ((-1 << v118) & v117) != 0 )
+                        sub_1402898B0(
+                          "!(value & ~((1 << bitCount) - 1))",
+                          "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+                          139LL);
+                      v119 = *(_DWORD *)(a1 + 16);
+                      if ( v119 >= v118 )
+                      {
+                        v120 = v119 - v118;
+                        *(_DWORD *)(a1 + 16) = v120;
+                        *(_DWORD *)(a1 + 20) |= v117 << v120;
+                      }
+                      else
+                      {
+                        if ( *(_QWORD *)a1 != *(_QWORD *)(a1 + 8) )
+                        {
+                          **(_DWORD **)a1 = *(_DWORD *)(a1 + 20) | (v117 >> (v118 - v119));
+                          *(_QWORD *)a1 += 4LL;
+                        }
+                        *(_DWORD *)(a1 + 16) += 32 - v118;
+                        *(_DWORD *)(a1 + 20) = v117 << *(_DWORD *)(a1 + 16);
+                      }
+                    }
+                    ++v108;
+                  }
+                  while ( v108 != v111 );
+                }
+                HIDWORD(v190) = 0;
+                HIDWORD(v194) = 0;
+                HIDWORD(v198) = 0;
+                v203 = 0;
+                sub_14024FE30(v200, 1256LL);
+                sub_14024FE30(v201, 128LL);
+                sub_14024FE30(v202, 496LL);
+                if ( v172 )
+                  sub_14027D7E0(v172, 0LL, 0LL);
+                v172 = 0LL;
+                v173 = 0LL;
+                if ( v169 )
+                  sub_14027D7E0(v169, 0LL, 0LL);
+                v169 = 0LL;
+                v170 = 0LL;
+                if ( v163 )
+                {
+                  sub_14027D7E0(v163, 0LL, 0LL);
+                  v76 = v174;
+                }
+                else
+                {
+LABEL_171:
+                  v76 = v174;
+                }
+              }
+            }
+          }
+          else
+          {
+            v121 = v77 - 6;
+            if ( (unsigned int)v121 >= 0x100 )
+              sub_1402898B0(
+                "length < arrsize(s_codeLength)",
+                "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp",
+                112LL);
+            v122 = (unsigned int)byte_141B80BC0[v121 + 32] + 285;
+            v123 = (unsigned int)sub_140464630(v78);
+            if ( (unsigned int)v122 >= 0x13A )
+              sub_1402898B0(
+                "litLenCode < arrsize(m_litLenFreq)",
+                "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp",
+                441LL);
+            if ( (unsigned int)v123 >= 0x7C )
+              sub_1402898B0(
+                "distCode < arrsize(m_distDeltaFreq)",
+                "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp",
+                442LL);
+            ++v200[v122];
+            ++v202[v123];
+            *(_WORD *)sub_14046D560(&v188) = v121 + 512;
+            sub_140294530(&v196, (unsigned int)(HIDWORD(v198) + 1));
+            v124 = HIDWORD(v198) + 1;
+            v178 = HIDWORD(v198) + 1;
+            if ( (unsigned int)(HIDWORD(v198) + 1) < HIDWORD(v198) || v124 > (unsigned int)v198 )
+            {
+              sub_1402504A0(
+                (unsigned int)"D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Core\\Collections\\Array.h",
+                730,
+                (unsigned int)"New Count: {}, Count: {}, Alloc: {}",
+                (unsigned int)&v178,
+                (__int64)&v198 + 4,
+                (__int64)&v198);
+              __debugbreak();
+            }
+            ++HIDWORD(v198);
+            v197[v124 - 1] = v78;
+            if ( (v190 & 0xFFF00000000LL) == 0 )
+            {
+              if ( HIDWORD(v190) == 0x10000 || (unsigned int)(2 * (HIDWORD(v194) + HIDWORD(v198)) - v203) >= 0x1400 )
+                sub_14046CE20(&v188, a1);
+              else
+                v203 = HIDWORD(v194) + HIDWORD(v198);
+            }
+            v178 = v180;
+          }
+          v125 = v176;
+          sub_14046DEF0((unsigned int)v184, v181, v166, v160, v176 - 1, (__int64)v187);
+          v79 = v177;
+          v80 = v125 + v160 - 1;
+          v176 = 0;
+          v77 = 0;
+          goto LABEL_301;
+        }
+      }
+      else if ( v175 )
+      {
+        goto LABEL_295;
+      }
+      v126 = *(unsigned __int8 *)(v160 - (v77 != 0) + v83);
+      ++v200[v126];
+      *(_WORD *)sub_14046D560(&v188) = v126;
+      if ( (v190 & 0xFFF00000000LL) == 0 )
+      {
+        if ( HIDWORD(v190) == 0x10000 )
+        {
+          sub_14024E030();
+          v162 = 3;
+          v164 = 0LL;
+          v163 = 0LL;
+          sub_14046FA80(&v162, 314LL, v200, a1);
+          sub_14024E030();
+          v168 = 3;
+          v170 = 0LL;
+          v169 = 0LL;
+          sub_14046FA80(&v168, 32LL, v201, a1);
+          sub_14024CE90();
+          v171 = 1;
+          v173 = 0LL;
+          v172 = 0LL;
+          sub_14046FA80(&v171, 124LL, v202, a1);
+          v127 = ((unsigned int)(HIDWORD(v190) + 4095) >> 12) - 1;
+          if ( v127 >= 0x10 )
+            sub_1402898B0(
+              "totalCode < 0x10",
+              "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp",
+              356LL);
+          if ( (v127 & 0xFFFFFFF0) != 0 )
+            sub_1402898B0(
+              "!(value & ~((1 << bitCount) - 1))",
+              "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+              139LL);
+          v128 = *(_DWORD *)(a1 + 16);
+          if ( v128 >= 4 )
+          {
+            *(_DWORD *)(a1 + 20) |= v127 << (v128 - 4);
+            *(_DWORD *)(a1 + 16) = v128 - 4;
+          }
+          else
+          {
+            if ( *(_QWORD *)a1 != *(_QWORD *)(a1 + 8) )
+            {
+              **(_DWORD **)a1 = *(_DWORD *)(a1 + 20) | (v127 >> (4 - v128));
+              *(_QWORD *)a1 += 4LL;
+            }
+            *(_DWORD *)(a1 + 16) += 28;
+            *(_DWORD *)(a1 + 20) = v127 << *(_DWORD *)(a1 + 16);
+          }
+          v129 = v189;
+          v130 = v193;
+          v131 = v197;
+          v132 = &v189[HIDWORD(v190)];
+          if ( v189 != v132 )
+          {
+            do
+            {
+              v133 = (unsigned __int16)*v129;
+              v134 = *v129 & 0xFF00;
+              if ( v134 )
+              {
+                if ( v134 == 256 )
+                {
+                  sub_140468C90((unsigned int)(v133 - 256), 256LL, &v162, a1);
+                  v136 = *v130++;
+                  sub_140468A30(v136, &v168, a1);
+                }
+                else if ( v134 == 512 )
+                {
+                  sub_140468C90((unsigned int)(v133 - 512), 285LL, &v162, a1);
+                  v135 = *v131++;
+                  sub_140468B70(v135, &v171, a1);
+                }
+              }
+              else
+              {
+                v161 = (unsigned __int16)*v129;
+                if ( (unsigned int)v133 >= HIDWORD(v164) )
+                {
+                  sub_140244E10(
+                    (unsigned int)"D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Core\\Collections\\Array.h",
+                    690,
+                    (unsigned int)"Index: {}, Count: {}",
+                    (unsigned int)&v161,
+                    (__int64)&v164 + 4);
+                  JUMPOUT(0x1404662F2LL);
+                }
+                v137 = (unsigned int *)(v163 + 8 * v133);
+                if ( *v137 >= 0x20 )
+                  sub_1402898B0(
+                    "code.bitCount < 8 * sizeof(code.value)",
+                    "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpHuff.h",
+                    146LL);
+                v138 = v137[1];
+                v139 = *v137;
+                if ( v139 >= 0x20 )
+                  sub_1402898B0(
+                    "bitCount < 8 * sizeof(value)",
+                    "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+                    138LL);
+                if ( ((-1 << v139) & v138) != 0 )
+                  sub_1402898B0(
+                    "!(value & ~((1 << bitCount) - 1))",
+                    "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+                    139LL);
+                v140 = *(_DWORD *)(a1 + 16);
+                if ( v140 >= v139 )
+                {
+                  v141 = v140 - v139;
+                  *(_DWORD *)(a1 + 16) = v141;
+                  *(_DWORD *)(a1 + 20) |= v138 << v141;
+                }
+                else
+                {
+                  if ( *(_QWORD *)a1 != *(_QWORD *)(a1 + 8) )
+                  {
+                    **(_DWORD **)a1 = *(_DWORD *)(a1 + 20) | (v138 >> (v139 - v140));
+                    *(_QWORD *)a1 += 4LL;
+                  }
+                  *(_DWORD *)(a1 + 16) += 32 - v139;
+                  *(_DWORD *)(a1 + 20) = v138 << *(_DWORD *)(a1 + 16);
+                }
+              }
+              ++v129;
+            }
+            while ( v129 != v132 );
+            goto LABEL_255;
+          }
+          goto LABEL_256;
+        }
+        if ( (unsigned int)(2 * (HIDWORD(v198) + HIDWORD(v194)) - v203) < 0x1400 )
+        {
+          v203 = HIDWORD(v198) + HIDWORD(v194);
+        }
+        else if ( HIDWORD(v190) )
+        {
+          sub_14024E030();
+          v162 = 3;
+          v164 = 0LL;
+          v163 = 0LL;
+          sub_14046FA80(&v162, 314LL, v200, a1);
+          sub_14024E030();
+          v168 = 3;
+          v170 = 0LL;
+          v169 = 0LL;
+          sub_14046FA80(&v168, 32LL, v201, a1);
+          sub_14024CE90();
+          v171 = 1;
+          v173 = 0LL;
+          v172 = 0LL;
+          sub_14046FA80(&v171, 124LL, v202, a1);
+          v142 = ((unsigned int)(HIDWORD(v190) + 4095) >> 12) - 1;
+          if ( v142 >= 0x10 )
+            sub_1402898B0(
+              "totalCode < 0x10",
+              "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp",
+              356LL);
+          if ( (v142 & 0xFFFFFFF0) != 0 )
+            sub_1402898B0(
+              "!(value & ~((1 << bitCount) - 1))",
+              "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+              139LL);
+          v143 = *(_DWORD *)(a1 + 16);
+          if ( v143 >= 4 )
+          {
+            *(_DWORD *)(a1 + 20) |= v142 << (v143 - 4);
+            *(_DWORD *)(a1 + 16) = v143 - 4;
+          }
+          else
+          {
+            if ( *(_QWORD *)a1 != *(_QWORD *)(a1 + 8) )
+            {
+              **(_DWORD **)a1 = *(_DWORD *)(a1 + 20) | (v142 >> (4 - v143));
+              *(_QWORD *)a1 += 4LL;
+            }
+            *(_DWORD *)(a1 + 16) += 28;
+            *(_DWORD *)(a1 + 20) = v142 << *(_DWORD *)(a1 + 16);
+          }
+          v144 = v189;
+          v145 = v193;
+          v146 = v197;
+          v147 = &v189[HIDWORD(v190)];
+          if ( v189 != v147 )
+          {
+            do
+            {
+              v148 = (unsigned __int16)*v144;
+              v149 = *v144 & 0xFF00;
+              if ( v149 )
+              {
+                if ( v149 == 256 )
+                {
+                  sub_140468C90((unsigned int)(v148 - 256), 256LL, &v162, a1);
+                  v151 = *v145++;
+                  sub_140468A30(v151, &v168, a1);
+                }
+                else if ( v149 == 512 )
+                {
+                  sub_140468C90((unsigned int)(v148 - 512), 285LL, &v162, a1);
+                  v150 = *v146++;
+                  sub_140468B70(v150, &v171, a1);
+                }
+              }
+              else
+              {
+                v161 = (unsigned __int16)*v144;
+                if ( (unsigned int)v148 >= HIDWORD(v164) )
+                {
+                  sub_140244E10(
+                    (unsigned int)"D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Core\\Collections\\Array.h",
+                    690,
+                    (unsigned int)"Index: {}, Count: {}",
+                    (unsigned int)&v161,
+                    (__int64)&v164 + 4);
+                  __debugbreak();
+                }
+                v152 = (unsigned int *)(v163 + 8 * v148);
+                if ( *v152 >= 0x20 )
+                  sub_1402898B0(
+                    "code.bitCount < 8 * sizeof(code.value)",
+                    "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpHuff.h",
+                    146LL);
+                v153 = v152[1];
+                v154 = *v152;
+                if ( v154 >= 0x20 )
+                  sub_1402898B0(
+                    "bitCount < 8 * sizeof(value)",
+                    "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+                    138LL);
+                if ( ((-1 << v154) & v153) != 0 )
+                  sub_1402898B0(
+                    "!(value & ~((1 << bitCount) - 1))",
+                    "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+                    139LL);
+                v155 = *(_DWORD *)(a1 + 16);
+                if ( v155 >= v154 )
+                {
+                  v156 = v155 - v154;
+                  *(_DWORD *)(a1 + 16) = v156;
+                  *(_DWORD *)(a1 + 20) |= v153 << v156;
+                }
+                else
+                {
+                  if ( *(_QWORD *)a1 != *(_QWORD *)(a1 + 8) )
+                  {
+                    **(_DWORD **)a1 = *(_DWORD *)(a1 + 20) | (v153 >> (v154 - v155));
+                    *(_QWORD *)a1 += 4LL;
+                  }
+                  *(_DWORD *)(a1 + 16) += 32 - v154;
+                  *(_DWORD *)(a1 + 20) = v153 << *(_DWORD *)(a1 + 16);
+                }
+              }
+              ++v144;
+            }
+            while ( v144 != v147 );
+LABEL_255:
+            v85 = v160;
+          }
+LABEL_256:
+          HIDWORD(v190) = 0;
+          HIDWORD(v194) = 0;
+          HIDWORD(v198) = 0;
+          v203 = 0;
+          sub_14024FE30(v200, 1256LL);
+          sub_14024FE30(v201, 128LL);
+          sub_14024FE30(v202, 496LL);
+          if ( v172 )
+            sub_14027D7E0(v172, 0LL, 0LL);
+          v173 = 0LL;
+          v172 = 0LL;
+          if ( v169 )
+            sub_14027D7E0(v169, 0LL, 0LL);
+          v169 = 0LL;
+          v170 = 0LL;
+          if ( v163 )
+            sub_14027D7E0(v163, 0LL, 0LL);
+          v79 = v165;
+        }
+      }
+LABEL_295:
+      sub_14046DEF0((unsigned int)v184, v181, v166, v85, 1, (__int64)v187);
+      v77 = v175;
+      v176 = v175;
+      v76 = HIDWORD(v175) >= (unsigned int)v175;
+      v174 = v76;
+      if ( HIDWORD(v175) < (unsigned int)v175 )
+      {
+        v161 = v179 - v79;
+        v180 = v179;
+        if ( (unsigned int)(v179 - v178) <= 0x105 || (v157 = v79 + v175, (unsigned int)(v178 - v179) <= 0x105) )
+          v157 = v175 + v179;
+      }
+      else
+      {
+        v77 = HIDWORD(v175);
+        v176 = HIDWORD(v175);
+        v161 = v167;
+        v157 = v79 + HIDWORD(v175);
+      }
+      v80 = v85 + 1;
+      v177 = v157;
+      ++v79;
+LABEL_301:
+      v75 = v166;
+      v165 = v79;
+      v160 = v80;
+      if ( v80 >= v166 )
+        break;
+      v78 = v161;
+    }
+  }
+  sub_14046CE20(&v188, a1);
+  result = (*(__int64 (__fastcall **)(_QWORD *, __int64))*v159)(v159, 1LL);
+  if ( v186 )
+    result = sub_14027D7E0(v186, 0LL, 0LL);
+  if ( v185 )
+    result = sub_14027D7E0(v185, 0LL, 0LL);
+  if ( v197 )
+    result = sub_14027D7E0(v197, 0LL, 0LL);
+  v197 = 0LL;
+  v198 = 0LL;
+  if ( v193 )
+    result = sub_14027D7E0(v193, 0LL, 0LL);
+  v193 = 0LL;
+  v194 = 0LL;
+  if ( v189 )
+    return sub_14027D7E0(v189, 0LL, 0LL);
+  return result;
+}
+
+
+void *__fastcall sub_1404636D0(
+        char *a1,
+        _DWORD *a2,
+        char *a3,
+        unsigned int a4,
+        unsigned __int64 a5,
+        unsigned int a6,
+        int a7,
+        _DWORD *a8)
+{
+  unsigned __int64 v8; // rdi
+  char *v12; // r15
+  int v13; // eax
+  int v14; // edx
+  unsigned int v15; // eax
+  void *result; // rax
+  char *v17; // [rsp+30h] [rbp-48h] BYREF
+  char *v18; // [rsp+38h] [rbp-40h]
+  __int64 v19; // [rsp+40h] [rbp-38h]
+
+  v8 = a4;
+  v12 = &a1[a4];
+  if ( v12 > a3 && &a3[a4] > a1 )
+    sub_1402898B0(
+      "((unsigned_ptr)outputData + sourceBytes <= (unsigned_ptr)sourceData) || ((unsigned_ptr)sourceData + sourceBytes <="
+      " (unsigned_ptr)outputData)",
+      "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp",
+      38LL);
+  if ( (unsigned __int64)v12 > a5 && a5 + a6 > (unsigned __int64)a1 )
+    sub_1402898B0(
+      "((unsigned_ptr)outputData + sourceBytes <= (unsigned_ptr)oldSourceData) || ((unsigned_ptr)oldSourceData + oldSourc"
+      "eBytes <= (unsigned_ptr)outputData)",
+      "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp",
+      40LL);
+  if ( a7 )
+    sub_1402898B0("!flags", "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp", 43LL);
+  if ( a8 )
+    *a8 = 0;
+  v17 = a1;
+  v18 = &a1[4 * (v8 >> 2)];
+  if ( a5 && 2 * a6 >= (unsigned int)v8 && 2 * (int)v8 >= a6 )
+  {
+    v13 = 1;
+    v14 = 1;
+  }
+  else
+  {
+    v13 = 0;
+    v14 = 0;
+  }
+  LODWORD(v19) = 28;
+  HIDWORD(v19) = v14 << 28;
+  if ( v13 )
+  {
+    if ( !a5 )
+      sub_1402898B0("oldSourceData", "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp", 71LL);
+    if ( !a6 )
+      sub_1402898B0("oldSourceBytes", "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp", 72LL);
+    if ( a8 )
+      *a8 = 1;
+    sub_1404646B0((__int64)&v17, (__int64)a3, v8, a5, a6);
+  }
+  else
+  {
+    sub_140466EC0(&v17, a3, (unsigned int)v8);
+  }
+  if ( (_DWORD)v19 != 32 )
+  {
+    if ( v17 != v18 )
+    {
+      *(_DWORD *)v17 = HIDWORD(v19);
+      v17 += 4;
+    }
+    v19 = 32LL;
+  }
+  v15 = (_DWORD)v17 - (_DWORD)a1;
+  *a2 = (_DWORD)v17 - (_DWORD)a1;
+  if ( v15 > (unsigned int)v8 )
+    sub_1402898B0(
+      "*outputBytes <= sourceBytes",
+      "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp",
+      90LL);
+  result = (void *)((unsigned int)*a2 + 4LL);
+  if ( (unsigned __int64)result > v8 )
+  {
+    *a2 = v8;
+    return j_memcpy(a1, a3, v8);
+  }
+  return result;
+}
+
+
+__int64 __fastcall sub_1403DE630(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
+{
+  char *v7; // rax
+  unsigned int v8; // r9d
+  __int64 result; // rax
+  unsigned int v10; // [rsp+58h] [rbp+10h] BYREF
+
+  *(_DWORD *)(a3 + 14) = sub_14026C7C0(*(_QWORD *)(a2 + 12));
+  v7 = (char *)sub_1404AE690(a4);
+  v8 = *(_DWORD *)(a3 + 14);
+  *(_QWORD *)(a3 + 22) = v7;
+  sub_1404636D0(v7, &v10, *(char **)(a2 + 12), v8, 0LL, 0, 0, 0LL);
+  result = v10;
+  *(_DWORD *)(a3 + 18) = v10;
+  return result;
+}
+
+
+
+
