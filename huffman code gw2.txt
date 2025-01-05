@@ -4036,3 +4036,115 @@ LABEL_65:
   }
   return 1LL;
 }
+
+
+__int64 __fastcall sub_140463910(
+        char *a1,
+        size_t Size,
+        char *Src,
+        unsigned int a4,
+        unsigned __int64 a5,
+        unsigned int a6)
+{
+  unsigned __int64 v6; // rsi
+  size_t v8; // rdi
+  char *v10; // rcx
+  unsigned int v11; // edx
+  unsigned int v13; // esi
+  int v14; // edx
+  unsigned int v15; // esi
+  unsigned int v16; // ecx
+  int v17; // eax
+  int v18; // eax
+  _QWORD v19[2]; // [rsp+30h] [rbp-48h] BYREF
+  int v20; // [rsp+40h] [rbp-38h]
+  int v21; // [rsp+44h] [rbp-34h]
+  int v22; // [rsp+48h] [rbp-30h]
+
+  v6 = a4;
+  v8 = (unsigned int)Size;
+  if ( a4 > (unsigned int)Size )
+    sub_1402898B0(
+      "compressedBytes <= outputBytes",
+      "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp",
+      111LL);
+  if ( !a5 && a6 )
+    sub_1402898B0(
+      "oldSourceData || !oldSourceBytes",
+      "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp",
+      112LL);
+  if ( &a1[v8] > Src && &Src[v6] > a1 )
+    sub_1402898B0(
+      "((unsigned_ptr)outputData + outputBytes <= (unsigned_ptr)compressedData) || ((unsigned_ptr)compressedData + compre"
+      "ssedBytes <= (unsigned_ptr)outputData)",
+      "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp",
+      116LL);
+  if ( (unsigned __int64)&a1[v8] > a5 && a5 + a6 > (unsigned __int64)a1 )
+    sub_1402898B0(
+      "((unsigned_ptr)outputData + outputBytes <= (unsigned_ptr)oldSourceData) || ((unsigned_ptr)oldSourceData + oldSourc"
+      "eBytes <= (unsigned_ptr)outputData)",
+      "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp",
+      118LL);
+  if ( (unsigned int)v6 <= (unsigned int)v8 )
+  {
+    if ( (_DWORD)v6 == (_DWORD)v8 )
+    {
+      j_memcpy(a1, Src, v8);
+      return 1LL;
+    }
+  }
+  else
+  {
+    sub_1402898B0(
+      "compressedBytes <= outputBytes",
+      "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpApi.cpp",
+      122LL);
+  }
+  v19[0] = Src;
+  v10 = &Src[4 * (v6 >> 2)];
+  v19[1] = v10;
+  if ( Src == v10 )
+  {
+    v11 = 0;
+  }
+  else
+  {
+    v11 = *(_DWORD *)Src;
+    Src += 4;
+    v19[0] = Src;
+  }
+  v13 = v11;
+  v14 = 16 * v11;
+  v15 = v13 >> 28;
+  v21 = v14;
+  if ( Src == v10 )
+  {
+    v22 = 0;
+    v20 = 0;
+  }
+  else
+  {
+    v16 = *(_DWORD *)Src;
+    v17 = *(_DWORD *)Src >> 28;
+    v19[0] = Src + 4;
+    v22 = 16 * v16;
+    v21 = v14 | v17;
+    v20 = 28;
+  }
+  if ( !v15 )
+  {
+    v18 = sub_140468330(a1, (unsigned int)v8, v19);
+LABEL_27:
+    if ( !v18 )
+      goto LABEL_28;
+    return 1LL;
+  }
+  if ( v15 == 1 )
+  {
+    v18 = sub_140466300(a1, v8, (__int64)v19, a5, a6);
+    goto LABEL_27;
+  }
+LABEL_28:
+  sub_140272850(2LL, "CmpDecompress(): corrupt data, Method = %d ", v15);
+  return 0LL;
+}
