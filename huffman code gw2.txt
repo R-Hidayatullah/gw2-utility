@@ -2884,3 +2884,1155 @@ __int64 __fastcall sub_1403DE630(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
 
 
 
+.rdata:0000000141B80CDF                 db  1Ch
+.rdata:0000000141B80CE0 ; unsigned __int8 byte_141B80CE0[32]
+.rdata:0000000141B80CE0 byte_141B80CE0  db 4 dup(0), 2 dup(1), 2 dup(2), 2 dup(3), 2 dup(4), 2 dup(5)
+.rdata:0000000141B80CEE                 db 2 dup(6), 2 dup(7), 2 dup(8), 2 dup(9), 2 dup(0Ah)
+.rdata:0000000141B80CF8                 db 2 dup(0Bh), 2 dup(0Ch), 2 dup(0Dh), 2 dup(0Eh)
+.rdata:0000000141B80D00 ; unsigned __int8 byte_141B80D00[160]
+.rdata:0000000141B80D00 byte_141B80D00  db 8 dup(0), 4 dup(1), 4 dup(2), 4 dup(3), 4 dup(4), 4 dup(5)
+.rdata:0000000141B80D00                                         ; DATA XREF: sub_140468B70:loc_140468BC1↑o
+.rdata:0000000141B80D1C                 db 4 dup(6), 4 dup(7), 4 dup(8), 4 dup(9), 4 dup(0Ah)
+.rdata:0000000141B80D30                 db 4 dup(0Bh), 4 dup(0Ch), 4 dup(0Dh), 4 dup(0Eh), 4 dup(0Fh)
+.rdata:0000000141B80D44                 db 4 dup(10h), 4 dup(11h), 4 dup(12h), 4 dup(13h), 4 dup(14h)
+.rdata:0000000141B80D58                 db 4 dup(15h), 4 dup(16h), 4 dup(17h), 4 dup(18h), 4 dup(19h)
+.rdata:0000000141B80D6C                 db 4 dup(1Ah), 4 dup(1Bh), 4 dup(1Ch), 4 dup(1Dh), 0Ch dup(0)
+.rdata:0000000141B80D88                 db 4 dup(1), 4 dup(2), 4 dup(3), 4 dup(4), 4 dup(5), 4 dup(0)
+.rdata:0000000141B80DA0 aDPerforceLiveN_191 db 'D:\Perforce\Live\NAEU\v2\Code\Arena\Services\Compress\CmpDict.cpp'
+
+
+
+__int64 __fastcall sub_140466300(_BYTE *a1, int a2, __int64 a3, __int64 a4, unsigned int a5)
+{
+  unsigned int v5; // eax
+  unsigned int v7; // r8d
+  unsigned int *v8; // r12
+  unsigned int v9; // r11d
+  int v10; // r9d
+  unsigned int v11; // edi
+  unsigned int v12; // r8d
+  unsigned int v13; // r11d
+  unsigned int *v14; // rax
+  unsigned int v15; // r8d
+  unsigned int v16; // r10d
+  unsigned int v17; // r10d
+  unsigned int v18; // r10d
+  _QWORD *v19; // r15
+  int v20; // r9d
+  unsigned int v21; // r11d
+  int v22; // r8d
+  unsigned int *v23; // rax
+  unsigned int v24; // r8d
+  char v25; // al
+  int v26; // r13d
+  _BYTE *v27; // rsi
+  _BYTE *v28; // rdi
+  unsigned int v29; // r11d
+  unsigned int v30; // r8d
+  unsigned int v31; // r10d
+  int v32; // r9d
+  unsigned int v33; // r11d
+  unsigned int v34; // eax
+  int v35; // r8d
+  unsigned int *v36; // rax
+  unsigned int v37; // r8d
+  int v38; // eax
+  unsigned int v39; // edx
+  unsigned __int64 v40; // rax
+  unsigned int v41; // esi
+  unsigned int v42; // r14d
+  unsigned int *v43; // rax
+  __int64 v44; // rcx
+  unsigned int v45; // r9d
+  unsigned int *v46; // rax
+  unsigned int v47; // r9d
+  unsigned int *v48; // rax
+  unsigned int v49; // r8d
+  __int64 v50; // rcx
+  unsigned int v51; // esi
+  int v52; // r15d
+  unsigned int v53; // edx
+  unsigned int v54; // eax
+  int v55; // r10d
+  int v56; // eax
+  unsigned int *v57; // rax
+  unsigned int v58; // r8d
+  char v59; // al
+  unsigned int v60; // edx
+  unsigned __int64 v61; // rax
+  int v62; // esi
+  unsigned int v63; // r14d
+  unsigned int v64; // r13d
+  unsigned int *v65; // rax
+  __int64 v66; // rcx
+  unsigned int v67; // r9d
+  unsigned int *v68; // rax
+  unsigned int *v69; // rax
+  unsigned int v70; // r8d
+  int v71; // r14d
+  unsigned int v72; // r15d
+  unsigned int v73; // edx
+  int v74; // r10d
+  unsigned int *v75; // rax
+  unsigned int v76; // r8d
+  int v77; // ecx
+  unsigned int v78; // ecx
+  __int64 v79; // rdx
+  __int64 v80; // rcx
+  unsigned int v81; // esi
+  int v82; // r15d
+  unsigned int v83; // edx
+  unsigned int v84; // eax
+  int v85; // r10d
+  int v86; // eax
+  unsigned int *v87; // rax
+  unsigned int v88; // r8d
+  char v89; // al
+  unsigned int v90; // edx
+  unsigned __int64 v91; // rax
+  int v92; // esi
+  unsigned int v93; // r14d
+  unsigned int v94; // r15d
+  unsigned int *v95; // rax
+  __int64 v96; // rcx
+  unsigned int v97; // r9d
+  unsigned int *v98; // rax
+  unsigned int *v99; // rax
+  unsigned int v100; // r8d
+  unsigned int v101; // r14d
+  int v102; // r12d
+  unsigned int v103; // edx
+  int v104; // r10d
+  unsigned int *v105; // rax
+  unsigned int v106; // r8d
+  char *i; // rcx
+  char v108; // al
+  int v110; // [rsp+30h] [rbp-D0h]
+  int v111; // [rsp+38h] [rbp-C8h] BYREF
+  unsigned int v112; // [rsp+40h] [rbp-C0h]
+  int v113; // [rsp+44h] [rbp-BCh]
+  unsigned int v114; // [rsp+48h] [rbp-B8h]
+  int v115; // [rsp+4Ch] [rbp-B4h]
+  _BYTE *v116; // [rsp+50h] [rbp-B0h]
+  __int64 v117; // [rsp+58h] [rbp-A8h]
+  __int64 v118; // [rsp+60h] [rbp-A0h]
+  _QWORD *v119; // [rsp+68h] [rbp-98h]
+  _DWORD v120[512]; // [rsp+70h] [rbp-90h] BYREF
+  unsigned int v121; // [rsp+870h] [rbp+770h] BYREF
+  __int64 v122; // [rsp+998h] [rbp+898h]
+  __int64 v123; // [rsp+9A0h] [rbp+8A0h] BYREF
+  _DWORD v124[512]; // [rsp+9B0h] [rbp+8B0h] BYREF
+  unsigned int v125; // [rsp+11B0h] [rbp+10B0h] BYREF
+  __int64 v126; // [rsp+12D8h] [rbp+11D8h]
+  __int64 v127; // [rsp+12E0h] [rbp+11E0h] BYREF
+  _DWORD v128[512]; // [rsp+12F0h] [rbp+11F0h] BYREF
+  unsigned int v129; // [rsp+1AF0h] [rbp+19F0h] BYREF
+  __int64 v130; // [rsp+1C18h] [rbp+1B18h]
+  unsigned int v131[3]; // [rsp+1C24h] [rbp+1B24h] BYREF
+
+  v5 = *(_DWORD *)(a3 + 20);
+  v7 = *(_DWORD *)(a3 + 24);
+  v8 = (unsigned int *)(a3 + 16);
+  v9 = *(_DWORD *)(a3 + 16);
+  v117 = a4;
+  v10 = (16 * v5) | (v7 >> 28);
+  v11 = v5 >> 28;
+  v118 = (__int64)a1;
+  *(_DWORD *)(a3 + 20) = v10;
+  if ( v9 < 4 )
+  {
+    v14 = *(unsigned int **)a3;
+    if ( *(_QWORD *)a3 != *(_QWORD *)(a3 + 8) )
+    {
+      v15 = *v14;
+      *(_QWORD *)a3 = v14 + 1;
+      v16 = v15 >> (32 - (4 - v9));
+      v12 = v15 << (4 - v9);
+      v17 = v10 | v16;
+      *(_DWORD *)(a3 + 24) = v12;
+      v13 = v9 + 28;
+      v10 = v17;
+      goto LABEL_7;
+    }
+    v13 = 0;
+    *(_DWORD *)(a3 + 24) = 0;
+    v12 = 0;
+  }
+  else
+  {
+    v12 = 16 * v7;
+    *(_DWORD *)(a3 + 24) = v12;
+    v13 = v9 - 4;
+  }
+  v17 = v10;
+LABEL_7:
+  v18 = v17 >> 28;
+  *v8 = v13;
+  v19 = (_QWORD *)(a3 + 8);
+  v119 = (_QWORD *)(a3 + 8);
+  v114 = v11 + 1;
+  v20 = (v12 >> 28) | (16 * v10);
+  *(_DWORD *)(a3 + 20) = v20;
+  if ( v13 < 4 )
+  {
+    v23 = *(unsigned int **)a3;
+    if ( *(_QWORD *)a3 == *v19 )
+    {
+      v21 = 0;
+      v22 = 0;
+    }
+    else
+    {
+      v24 = *v23;
+      *(_QWORD *)a3 = v23 + 1;
+      v25 = 4 - v13;
+      v21 = v13 + 28;
+      *(_DWORD *)(a3 + 20) = v20 | (v24 >> (32 - v25));
+      v22 = v24 << v25;
+    }
+  }
+  else
+  {
+    v21 = v13 - 4;
+    v22 = 16 * v12;
+  }
+  *(_DWORD *)(a3 + 24) = v22;
+  v26 = 0;
+  v113 = 0;
+  v27 = &a1[a2];
+  *v8 = v21;
+  v110 = 0;
+  v112 = v18 + 1;
+  v28 = a1;
+  v116 = v27;
+  if ( a1 != v27 )
+  {
+LABEL_13:
+    sub_14046F220((__int64)v128, a3);
+    sub_14046F220((__int64)v124, a3);
+    sub_14046F220((__int64)v120, a3);
+    v29 = *(_DWORD *)(a3 + 20);
+    v30 = *(_DWORD *)(a3 + 24);
+    v31 = *v8;
+    v32 = (16 * v29) | (v30 >> 28);
+    v33 = v29 >> 28;
+    *(_DWORD *)(a3 + 20) = v32;
+    if ( v31 < 4 )
+    {
+      v36 = *(unsigned int **)a3;
+      if ( *(_QWORD *)a3 == *v19 )
+      {
+        v34 = 0;
+        v35 = 0;
+      }
+      else
+      {
+        v37 = *v36;
+        *(_QWORD *)a3 = v36 + 1;
+        *(_DWORD *)(a3 + 20) = v32 | (v37 >> (32 - (4 - v31)));
+        v34 = v31 + 28;
+        v35 = v37 << (4 - v31);
+      }
+    }
+    else
+    {
+      v34 = v31 - 4;
+      v35 = 16 * v30;
+    }
+    *(_DWORD *)(a3 + 24) = v35;
+    *v8 = v34;
+    v38 = (v33 + 1) << 12;
+    while ( 1 )
+    {
+      v115 = v38 - 1;
+      if ( v28 == v27 )
+      {
+LABEL_120:
+        if ( v122 )
+          sub_14027D7E0(v122, 0LL, 0LL);
+        v122 = 0LL;
+        v123 = 0LL;
+        if ( v126 )
+          sub_14027D7E0(v126, 0LL, 0LL);
+        v126 = 0LL;
+        v127 = 0LL;
+        if ( v130 )
+          sub_14027D7E0(v130, 0LL, 0LL);
+        if ( v28 != v27 )
+        {
+          v19 = v119;
+          goto LABEL_13;
+        }
+        return 1LL;
+      }
+      v39 = *(_DWORD *)(a3 + 20);
+      v40 = (unsigned __int64)v39 >> 24;
+      v41 = v128[2 * v40];
+      v42 = v128[2 * v40 + 1];
+      if ( v41 == -1 )
+      {
+        v43 = &v129;
+        if ( v39 < v129 )
+        {
+          do
+            v43 += 3;
+          while ( v39 < *v43 );
+        }
+        v41 = v43[2];
+        v44 = v43[1] - ((v39 - *v43) >> (32 - v41));
+        v111 = v44;
+        if ( (unsigned int)v44 >= v131[0] )
+        {
+          sub_140244E10(
+            (unsigned int)"D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Core\\Collections\\Array.h",
+            690,
+            (unsigned int)"Index: {}, Count: {}",
+            (unsigned int)&v111,
+            (__int64)v131);
+          __debugbreak();
+        }
+        v42 = *(_DWORD *)(v130 + 4 * v44);
+      }
+      if ( v41 < 0x20 )
+      {
+        if ( !v41 )
+          goto LABEL_29;
+      }
+      else
+      {
+        sub_1402898B0(
+          "bitCount < 8 * sizeof(m_rackData0)",
+          "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+          60LL);
+      }
+      *(_DWORD *)(a3 + 20) = (*(_DWORD *)(a3 + 20) << v41) | (*(_DWORD *)(a3 + 24) >> (32 - v41));
+LABEL_29:
+      v45 = *v8;
+      if ( v41 > *v8 )
+      {
+        v48 = *(unsigned int **)a3;
+        if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+        {
+          *(_DWORD *)(a3 + 24) = 0;
+          v46 = (unsigned int *)(a3 + 16);
+          v47 = 0;
+        }
+        else
+        {
+          v49 = *v48;
+          *(_QWORD *)a3 = v48 + 1;
+          *(_DWORD *)(a3 + 20) |= v49 >> (32 - (v41 - v45));
+          v46 = v8;
+          *(_DWORD *)(a3 + 24) = v49 << (v41 - v45);
+          v47 = v45 - v41 + 32;
+        }
+      }
+      else
+      {
+        v46 = v8;
+        *(_DWORD *)(a3 + 24) <<= v41;
+        v47 = v45 - v41;
+      }
+      *v46 = v47;
+      if ( v42 >= 0x11D )
+      {
+        v50 = v42 - 285;
+        v51 = byte_141B80D00[v50 + 128];
+        v52 = byte_141B80BA0[v50];
+        if ( byte_141B80D00[v50 + 128] )
+        {
+          v53 = *(_DWORD *)(a3 + 20);
+          v52 |= v53 >> (32 - v51);
+          if ( v51 >= 0x20 )
+          {
+            sub_1402898B0(
+              "bitCount < 8 * sizeof(m_rackData0)",
+              "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+              60LL);
+            v53 = *(_DWORD *)(a3 + 20);
+            v47 = *(_DWORD *)(a3 + 16);
+          }
+          v54 = *(_DWORD *)(a3 + 24);
+          v55 = (v53 << v51) | (v54 >> (32 - v51));
+          *(_DWORD *)(a3 + 20) = v55;
+          if ( v51 <= v47 )
+          {
+            v56 = v54 << v51;
+            v47 -= v51;
+            *v8 = v47;
+            goto LABEL_43;
+          }
+          v57 = *(unsigned int **)a3;
+          if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+          {
+            v56 = 0;
+            *(_DWORD *)(a3 + 16) = 0;
+            v47 = 0;
+LABEL_43:
+            *(_DWORD *)(a3 + 24) = v56;
+          }
+          else
+          {
+            v58 = *v57;
+            *(_QWORD *)a3 = v57 + 1;
+            v59 = v51 - v47;
+            v47 = v47 - v51 + 32;
+            *(_DWORD *)(a3 + 20) = v55 | (v58 >> (32 - v59));
+            *v8 = v47;
+            *(_DWORD *)(a3 + 24) = v58 << v59;
+          }
+        }
+        v60 = *(_DWORD *)(a3 + 20);
+        v61 = (unsigned __int64)v60 >> 24;
+        v62 = v52 + v112;
+        v63 = v120[2 * v61];
+        v64 = v120[2 * v61 + 1];
+        if ( v63 == -1 )
+        {
+          v65 = &v121;
+          if ( v60 < v121 )
+          {
+            do
+              v65 += 3;
+            while ( v60 < *v65 );
+          }
+          v63 = v65[2];
+          v66 = v65[1] - ((v60 - *v65) >> (32 - v63));
+          v111 = v66;
+          if ( (unsigned int)v66 >= HIDWORD(v123) )
+          {
+            sub_140244E10(
+              (unsigned int)"D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Core\\Collections\\Array.h",
+              690,
+              (unsigned int)"Index: {}, Count: {}",
+              (unsigned int)&v111,
+              (__int64)&v123 + 4);
+            JUMPOUT(0x140466EB6LL);
+          }
+          v47 = *(_DWORD *)(a3 + 16);
+          v64 = *(_DWORD *)(v122 + 4 * v66);
+        }
+        if ( v63 >= 0x20 )
+        {
+          sub_1402898B0(
+            "bitCount < 8 * sizeof(m_rackData0)",
+            "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+            60LL);
+          v47 = *(_DWORD *)(a3 + 16);
+          goto LABEL_52;
+        }
+        if ( v63 )
+LABEL_52:
+          *(_DWORD *)(a3 + 20) = (*(_DWORD *)(a3 + 20) << v63) | (*(_DWORD *)(a3 + 24) >> (32 - v63));
+        if ( v63 > v47 )
+        {
+          v69 = *(unsigned int **)a3;
+          if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+          {
+            *(_DWORD *)(a3 + 24) = 0;
+            v68 = (unsigned int *)(a3 + 16);
+            v67 = 0;
+          }
+          else
+          {
+            v70 = *v69;
+            *(_QWORD *)a3 = v69 + 1;
+            *(_DWORD *)(a3 + 20) |= v70 >> (32 - (v63 - v47));
+            v68 = v8;
+            *(_DWORD *)(a3 + 24) = v70 << (v63 - v47);
+            v67 = v47 - v63 + 32;
+          }
+        }
+        else
+        {
+          *(_DWORD *)(a3 + 24) <<= v63;
+          v67 = v47 - v63;
+          v68 = v8;
+        }
+        *v68 = v67;
+        if ( v64 >= 0x3C )
+          v71 = ((v64 & 2) + 4) << ((v64 >> 2) - 2);
+        else
+          v71 = (unsigned __int16)word_141B80B60[(unsigned __int64)v64 >> 1];
+        v72 = byte_141B80D00[v64];
+        if ( byte_141B80D00[v64] )
+        {
+          v71 |= *(_DWORD *)(a3 + 20) >> (32 - v72);
+          if ( v72 >= 0x20 )
+          {
+            sub_1402898B0(
+              "bitCount < 8 * sizeof(m_rackData0)",
+              "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+              60LL);
+            v67 = *(_DWORD *)(a3 + 16);
+          }
+          v73 = *(_DWORD *)(a3 + 24);
+          v74 = (v73 >> (32 - v72)) | (*(_DWORD *)(a3 + 20) << v72);
+          *(_DWORD *)(a3 + 20) = v74;
+          if ( v72 > v67 )
+          {
+            v75 = *(unsigned int **)a3;
+            if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+            {
+              *(_DWORD *)(a3 + 24) = 0;
+              *(_DWORD *)(a3 + 16) = 0;
+            }
+            else
+            {
+              v76 = *v75;
+              *(_QWORD *)a3 = v75 + 1;
+              *(_DWORD *)(a3 + 20) = v74 | (v76 >> (32 - (v72 - v67)));
+              *(_DWORD *)(a3 + 16) = v67 - v72 + 32;
+              *(_DWORD *)(a3 + 24) = v76 << (v72 - v67);
+            }
+          }
+          else
+          {
+            *(_DWORD *)(a3 + 24) = v73 << v72;
+            *(_DWORD *)(a3 + 16) = v67 - v72;
+          }
+        }
+        v77 = -v71;
+        if ( (v64 & 1) == 0 )
+          v77 = v71;
+        v78 = v110 + v77;
+        if ( &v28[v62] > v116 || v78 + v62 > a5 )
+          goto LABEL_128;
+        if ( v78 - v113 <= v112 + 255 || v113 - v78 <= v112 + 255 )
+          v26 = v78 + v62;
+        else
+          v26 = v62 + v110;
+        v110 = v26;
+        v113 = v78;
+        if ( v62 )
+        {
+          v79 = v117 + v78 - (_QWORD)v28;
+          do
+          {
+            *v28 = v28[v79];
+            ++v28;
+            --v62;
+          }
+          while ( v62 );
+        }
+        goto LABEL_119;
+      }
+      if ( v42 < 0x100 )
+      {
+        ++v26;
+        *v28 = v42;
+        v110 = v26;
+        ++v28;
+        goto LABEL_119;
+      }
+      v80 = v42 - 256;
+      v81 = byte_141B80D00[v80 + 128];
+      v82 = byte_141B80BA0[v80];
+      if ( byte_141B80D00[v80 + 128] )
+      {
+        v83 = *(_DWORD *)(a3 + 20);
+        v82 |= v83 >> (32 - v81);
+        if ( v81 >= 0x20 )
+        {
+          sub_1402898B0(
+            "bitCount < 8 * sizeof(m_rackData0)",
+            "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+            60LL);
+          v83 = *(_DWORD *)(a3 + 20);
+          v47 = *(_DWORD *)(a3 + 16);
+        }
+        v84 = *(_DWORD *)(a3 + 24);
+        v85 = (v83 << v81) | (v84 >> (32 - v81));
+        *(_DWORD *)(a3 + 20) = v85;
+        if ( v81 > v47 )
+        {
+          v87 = *(unsigned int **)a3;
+          if ( *(_QWORD *)a3 != *(_QWORD *)(a3 + 8) )
+          {
+            v88 = *v87;
+            *(_QWORD *)a3 = v87 + 1;
+            v89 = v81 - v47;
+            v47 = v47 - v81 + 32;
+            *(_DWORD *)(a3 + 20) = v85 | (v88 >> (32 - v89));
+            *v8 = v47;
+            *(_DWORD *)(a3 + 24) = v88 << v89;
+            goto LABEL_91;
+          }
+          v86 = 0;
+          *(_DWORD *)(a3 + 16) = 0;
+          v47 = 0;
+        }
+        else
+        {
+          v86 = v84 << v81;
+          v47 -= v81;
+          *v8 = v47;
+        }
+        *(_DWORD *)(a3 + 24) = v86;
+      }
+LABEL_91:
+      v90 = *(_DWORD *)(a3 + 20);
+      v91 = (unsigned __int64)v90 >> 24;
+      v92 = v82 + v114;
+      v93 = v124[2 * v91];
+      v94 = v124[2 * v91 + 1];
+      if ( v93 == -1 )
+      {
+        v95 = &v125;
+        if ( v90 < v125 )
+        {
+          do
+            v95 += 3;
+          while ( v90 < *v95 );
+        }
+        v93 = v95[2];
+        v96 = v95[1] - ((v90 - *v95) >> (32 - v93));
+        v111 = v96;
+        if ( (unsigned int)v96 >= HIDWORD(v127) )
+        {
+          sub_140244E10(
+            (unsigned int)"D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Core\\Collections\\Array.h",
+            690,
+            (unsigned int)"Index: {}, Count: {}",
+            (unsigned int)&v111,
+            (__int64)&v127 + 4);
+          __debugbreak();
+        }
+        v47 = *(_DWORD *)(a3 + 16);
+        v94 = *(_DWORD *)(v126 + 4 * v96);
+      }
+      if ( v93 >= 0x20 )
+      {
+        sub_1402898B0(
+          "bitCount < 8 * sizeof(m_rackData0)",
+          "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+          60LL);
+        v47 = *(_DWORD *)(a3 + 16);
+LABEL_99:
+        *(_DWORD *)(a3 + 20) = (*(_DWORD *)(a3 + 20) << v93) | (*(_DWORD *)(a3 + 24) >> (32 - v93));
+        goto LABEL_100;
+      }
+      if ( v93 )
+        goto LABEL_99;
+LABEL_100:
+      if ( v93 > v47 )
+      {
+        v99 = *(unsigned int **)a3;
+        if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+        {
+          *(_DWORD *)(a3 + 24) = 0;
+          v98 = (unsigned int *)(a3 + 16);
+          v97 = 0;
+        }
+        else
+        {
+          v100 = *v99;
+          *(_QWORD *)a3 = v99 + 1;
+          *(_DWORD *)(a3 + 20) |= v100 >> (32 - (v93 - v47));
+          v98 = v8;
+          *(_DWORD *)(a3 + 24) = v100 << (v93 - v47);
+          v97 = v47 - v93 + 32;
+        }
+      }
+      else
+      {
+        *(_DWORD *)(a3 + 24) <<= v93;
+        v97 = v47 - v93;
+        v98 = v8;
+      }
+      *v98 = v97;
+      v101 = byte_141B80CE0[v94];
+      v102 = (unsigned __int16)word_141B80B60[v94];
+      if ( byte_141B80CE0[v94] )
+      {
+        v102 |= *(_DWORD *)(a3 + 20) >> (32 - v101);
+        if ( v101 >= 0x20 )
+        {
+          sub_1402898B0(
+            "bitCount < 8 * sizeof(m_rackData0)",
+            "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+            60LL);
+          v97 = *(_DWORD *)(a3 + 16);
+        }
+        v103 = *(_DWORD *)(a3 + 24);
+        v104 = (v103 >> (32 - v101)) | (*(_DWORD *)(a3 + 20) << v101);
+        *(_DWORD *)(a3 + 20) = v104;
+        if ( v101 > v97 )
+        {
+          v105 = *(unsigned int **)a3;
+          if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+          {
+            *(_DWORD *)(a3 + 24) = 0;
+            *(_DWORD *)(a3 + 16) = 0;
+          }
+          else
+          {
+            v106 = *v105;
+            *(_QWORD *)a3 = v105 + 1;
+            *(_DWORD *)(a3 + 20) = v104 | (v106 >> (32 - (v101 - v97)));
+            *(_DWORD *)(a3 + 16) = v97 - v101 + 32;
+            *(_DWORD *)(a3 + 24) = v106 << (v101 - v97);
+          }
+        }
+        else
+        {
+          *(_DWORD *)(a3 + 24) = v103 << v101;
+          *(_DWORD *)(a3 + 16) = v97 - v101;
+        }
+      }
+      if ( &v28[v92] > v116 || v102 >= (__int64)&v28[-v118] )
+      {
+LABEL_128:
+        if ( v122 )
+          sub_14027D7E0(v122, 0LL, 0LL);
+        v122 = 0LL;
+        v123 = 0LL;
+        if ( v126 )
+          sub_14027D7E0(v126, 0LL, 0LL);
+        v126 = 0LL;
+        v127 = 0LL;
+        if ( v130 )
+          sub_14027D7E0(v130, 0LL, 0LL);
+        return 0LL;
+      }
+      v26 += v92;
+      v110 = v26;
+      for ( i = &v28[-v102 - 1]; v92; --v92 )
+      {
+        v108 = *i++;
+        *v28++ = v108;
+      }
+LABEL_119:
+      v38 = v115;
+      v8 = (unsigned int *)(a3 + 16);
+      v27 = v116;
+      if ( !v115 )
+        goto LABEL_120;
+    }
+  }
+  return 1LL;
+}
+
+
+
+__int64 __fastcall sub_140468330(_BYTE *a1, int a2, __int64 a3)
+{
+  unsigned int v3; // r9d
+  unsigned int v5; // r8d
+  unsigned int v6; // r11d
+  unsigned int v7; // r10d
+  int v8; // r9d
+  unsigned int v9; // r11d
+  unsigned int v10; // r9d
+  int v11; // r8d
+  unsigned int *v12; // rax
+  unsigned int v13; // r8d
+  int v14; // eax
+  _BYTE *v15; // rdi
+  unsigned int v16; // r12d
+  _BYTE *v17; // rsi
+  _QWORD *v18; // r15
+  unsigned int v19; // r11d
+  unsigned int v20; // r8d
+  unsigned int v21; // r10d
+  int v22; // r9d
+  unsigned int v23; // r11d
+  unsigned int v24; // eax
+  int v25; // r8d
+  unsigned int *v26; // rax
+  unsigned int v27; // r8d
+  int v28; // eax
+  unsigned int v29; // edx
+  unsigned __int64 v30; // rax
+  unsigned int v31; // edi
+  unsigned int v32; // r14d
+  unsigned int *v33; // rax
+  __int64 v34; // rcx
+  unsigned int v35; // r9d
+  unsigned int v36; // r9d
+  unsigned int *v37; // rax
+  unsigned int v38; // r8d
+  __int64 v39; // rcx
+  unsigned int v40; // edi
+  int v41; // r15d
+  unsigned int v42; // edx
+  unsigned int v43; // eax
+  int v44; // r10d
+  int v45; // eax
+  unsigned int *v46; // rax
+  unsigned int v47; // r8d
+  char v48; // al
+  unsigned int v49; // edx
+  int v50; // edi
+  unsigned __int64 v51; // rax
+  unsigned int v52; // r14d
+  int v53; // r15d
+  unsigned int *v54; // rax
+  __int64 v55; // rcx
+  unsigned int v56; // r9d
+  unsigned int *v57; // rax
+  unsigned int v58; // r8d
+  unsigned int v59; // r14d
+  int v60; // r12d
+  unsigned int v61; // edx
+  int v62; // r10d
+  unsigned int *v63; // rax
+  unsigned int v64; // r8d
+  char *i; // rcx
+  char v66; // al
+  int v68; // [rsp+30h] [rbp-D0h] BYREF
+  unsigned int v69; // [rsp+38h] [rbp-C8h]
+  int v70; // [rsp+3Ch] [rbp-C4h]
+  _BYTE *v71; // [rsp+40h] [rbp-C0h]
+  _BYTE *v72; // [rsp+48h] [rbp-B8h]
+  _QWORD *v73; // [rsp+50h] [rbp-B0h]
+  _DWORD v74[512]; // [rsp+60h] [rbp-A0h] BYREF
+  unsigned int v75; // [rsp+860h] [rbp+760h] BYREF
+  __int64 v76; // [rsp+988h] [rbp+888h]
+  __int64 v77; // [rsp+990h] [rbp+890h] BYREF
+  _DWORD v78[512]; // [rsp+9A0h] [rbp+8A0h] BYREF
+  unsigned int v79; // [rsp+11A0h] [rbp+10A0h] BYREF
+  __int64 v80; // [rsp+12C8h] [rbp+11C8h]
+  unsigned int v81[3]; // [rsp+12D4h] [rbp+11D4h] BYREF
+
+  v3 = *(_DWORD *)(a3 + 20);
+  v5 = *(_DWORD *)(a3 + 24);
+  v6 = v3;
+  v7 = *(_DWORD *)(a3 + 16);
+  v8 = (v5 >> 28) | (16 * v3);
+  v72 = a1;
+  v9 = v6 >> 28;
+  *(_DWORD *)(a3 + 20) = v8;
+  if ( v7 < 4 )
+  {
+    v12 = *(unsigned int **)a3;
+    if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+    {
+      v10 = 0;
+      v11 = 0;
+    }
+    else
+    {
+      v13 = *v12;
+      *(_QWORD *)a3 = v12 + 1;
+      v14 = v8 | (v13 >> (32 - (4 - v7)));
+      v10 = v7 + 28;
+      *(_DWORD *)(a3 + 20) = v14;
+      v11 = v13 << (4 - v7);
+    }
+  }
+  else
+  {
+    v10 = v7 - 4;
+    v11 = 16 * v5;
+  }
+  v15 = &a1[a2];
+  *(_DWORD *)(a3 + 24) = v11;
+  *(_DWORD *)(a3 + 16) = v10;
+  v71 = v15;
+  v16 = v9 + 1;
+  v69 = v9 + 1;
+  v17 = a1;
+  v18 = (_QWORD *)(a3 + 8);
+  v73 = (_QWORD *)(a3 + 8);
+  if ( a1 != v15 )
+  {
+LABEL_7:
+    sub_14046F220((__int64)v78, a3);
+    sub_14046F220((__int64)v74, a3);
+    v19 = *(_DWORD *)(a3 + 20);
+    v20 = *(_DWORD *)(a3 + 24);
+    v21 = *(_DWORD *)(a3 + 16);
+    v22 = (16 * v19) | (v20 >> 28);
+    v23 = v19 >> 28;
+    *(_DWORD *)(a3 + 20) = v22;
+    if ( v21 < 4 )
+    {
+      v26 = *(unsigned int **)a3;
+      if ( *(_QWORD *)a3 == *v18 )
+      {
+        v24 = 0;
+        v25 = 0;
+      }
+      else
+      {
+        v27 = *v26;
+        *(_QWORD *)a3 = v26 + 1;
+        *(_DWORD *)(a3 + 20) = v22 | (v27 >> (32 - (4 - v21)));
+        v24 = v21 + 28;
+        v25 = v27 << (4 - v21);
+      }
+    }
+    else
+    {
+      v24 = v21 - 4;
+      v25 = 16 * v20;
+    }
+    *(_DWORD *)(a3 + 24) = v25;
+    *(_DWORD *)(a3 + 16) = v24;
+    v28 = (v23 + 1) << 12;
+    while ( 1 )
+    {
+      v70 = v28 - 1;
+      if ( v17 == v15 )
+      {
+LABEL_66:
+        if ( v76 )
+          sub_14027D7E0(v76, 0LL, 0LL);
+        v76 = 0LL;
+        v77 = 0LL;
+        if ( v80 )
+          sub_14027D7E0(v80, 0LL, 0LL);
+        if ( v17 != v15 )
+        {
+          v18 = v73;
+          goto LABEL_7;
+        }
+        return 1LL;
+      }
+      v29 = *(_DWORD *)(a3 + 20);
+      v30 = (unsigned __int64)v29 >> 24;
+      v31 = v78[2 * v30];
+      v32 = v78[2 * v30 + 1];
+      if ( v31 == -1 )
+      {
+        v33 = &v79;
+        if ( v29 < v79 )
+        {
+          do
+            v33 += 3;
+          while ( v29 < *v33 );
+        }
+        v31 = v33[2];
+        v34 = v33[1] - ((v29 - *v33) >> (32 - v31));
+        v68 = v34;
+        if ( (unsigned int)v34 >= v81[0] )
+        {
+          sub_140244E10(
+            (unsigned int)"D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Core\\Collections\\Array.h",
+            690,
+            (unsigned int)"Index: {}, Count: {}",
+            (unsigned int)&v68,
+            (__int64)v81);
+          JUMPOUT(0x140468A22LL);
+        }
+        v32 = *(_DWORD *)(v80 + 4 * v34);
+      }
+      if ( v31 < 0x20 )
+      {
+        if ( !v31 )
+          goto LABEL_23;
+      }
+      else
+      {
+        sub_1402898B0(
+          "bitCount < 8 * sizeof(m_rackData0)",
+          "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+          60LL);
+      }
+      *(_DWORD *)(a3 + 20) = (*(_DWORD *)(a3 + 20) << v31) | (*(_DWORD *)(a3 + 24) >> (32 - v31));
+LABEL_23:
+      v35 = *(_DWORD *)(a3 + 16);
+      if ( v31 > v35 )
+      {
+        v37 = *(unsigned int **)a3;
+        if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+        {
+          *(_DWORD *)(a3 + 24) = 0;
+          v36 = 0;
+        }
+        else
+        {
+          v38 = *v37;
+          *(_QWORD *)a3 = v37 + 1;
+          *(_DWORD *)(a3 + 20) |= v38 >> (32 - (v31 - v35));
+          *(_DWORD *)(a3 + 24) = v38 << (v31 - v35);
+          v36 = v35 - v31 + 32;
+        }
+      }
+      else
+      {
+        *(_DWORD *)(a3 + 24) <<= v31;
+        v36 = v35 - v31;
+      }
+      *(_DWORD *)(a3 + 16) = v36;
+      if ( v32 >= 0x100 )
+      {
+        v39 = v32 - 256;
+        v40 = byte_141B80D00[v39 + 128];
+        v41 = byte_141B80BA0[v39];
+        if ( byte_141B80D00[v39 + 128] )
+        {
+          v42 = *(_DWORD *)(a3 + 20);
+          v41 |= v42 >> (32 - v40);
+          if ( v40 >= 0x20 )
+          {
+            sub_1402898B0(
+              "bitCount < 8 * sizeof(m_rackData0)",
+              "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+              60LL);
+            v42 = *(_DWORD *)(a3 + 20);
+            v36 = *(_DWORD *)(a3 + 16);
+          }
+          v43 = *(_DWORD *)(a3 + 24);
+          v44 = (v42 << v40) | (v43 >> (32 - v40));
+          *(_DWORD *)(a3 + 20) = v44;
+          if ( v40 <= v36 )
+          {
+            v45 = v43 << v40;
+            v36 -= v40;
+            *(_DWORD *)(a3 + 16) = v36;
+            goto LABEL_37;
+          }
+          v46 = *(unsigned int **)a3;
+          if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+          {
+            v45 = 0;
+            *(_DWORD *)(a3 + 16) = 0;
+            v36 = 0;
+LABEL_37:
+            *(_DWORD *)(a3 + 24) = v45;
+          }
+          else
+          {
+            v47 = *v46;
+            *(_QWORD *)a3 = v46 + 1;
+            v48 = v40 - v36;
+            v36 = v36 - v40 + 32;
+            *(_DWORD *)(a3 + 20) = v44 | (v47 >> (32 - v48));
+            *(_DWORD *)(a3 + 16) = v36;
+            *(_DWORD *)(a3 + 24) = v47 << v48;
+          }
+        }
+        v49 = *(_DWORD *)(a3 + 20);
+        v50 = v41 + v16;
+        v51 = (unsigned __int64)v49 >> 24;
+        v52 = v74[2 * v51];
+        v53 = v74[2 * v51 + 1];
+        if ( v52 == -1 )
+        {
+          v54 = &v75;
+          if ( v49 < v75 )
+          {
+            do
+              v54 += 3;
+            while ( v49 < *v54 );
+          }
+          v52 = v54[2];
+          v55 = v54[1] - ((v49 - *v54) >> (32 - v52));
+          v68 = v55;
+          if ( (unsigned int)v55 >= HIDWORD(v77) )
+          {
+            sub_140244E10(
+              (unsigned int)"D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Core\\Collections\\Array.h",
+              690,
+              (unsigned int)"Index: {}, Count: {}",
+              (unsigned int)&v68,
+              (__int64)&v77 + 4);
+            __debugbreak();
+          }
+          v36 = *(_DWORD *)(a3 + 16);
+          v53 = *(_DWORD *)(v76 + 4 * v55);
+        }
+        if ( v52 >= 0x20 )
+        {
+          sub_1402898B0(
+            "bitCount < 8 * sizeof(m_rackData0)",
+            "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+            60LL);
+          v36 = *(_DWORD *)(a3 + 16);
+          goto LABEL_46;
+        }
+        if ( v52 )
+LABEL_46:
+          *(_DWORD *)(a3 + 20) = (*(_DWORD *)(a3 + 20) << v52) | (*(_DWORD *)(a3 + 24) >> (32 - v52));
+        if ( v52 > v36 )
+        {
+          v57 = *(unsigned int **)a3;
+          if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+          {
+            *(_DWORD *)(a3 + 24) = 0;
+            v56 = 0;
+          }
+          else
+          {
+            v58 = *v57;
+            *(_QWORD *)a3 = v57 + 1;
+            *(_DWORD *)(a3 + 20) |= v58 >> (32 - (v52 - v36));
+            *(_DWORD *)(a3 + 24) = v58 << (v52 - v36);
+            v56 = v36 - v52 + 32;
+          }
+        }
+        else
+        {
+          *(_DWORD *)(a3 + 24) <<= v52;
+          v56 = v36 - v52;
+        }
+        *(_DWORD *)(a3 + 16) = v56;
+        v59 = byte_141B80CE0[v53];
+        v60 = (unsigned __int16)word_141B80B60[v53];
+        if ( byte_141B80CE0[v53] )
+        {
+          v60 |= *(_DWORD *)(a3 + 20) >> (32 - v59);
+          if ( v59 >= 0x20 )
+          {
+            sub_1402898B0(
+              "bitCount < 8 * sizeof(m_rackData0)",
+              "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpIo.h",
+              60LL);
+            v56 = *(_DWORD *)(a3 + 16);
+          }
+          v61 = *(_DWORD *)(a3 + 24);
+          v62 = (v61 >> (32 - v59)) | (*(_DWORD *)(a3 + 20) << v59);
+          *(_DWORD *)(a3 + 20) = v62;
+          if ( v59 > v56 )
+          {
+            v63 = *(unsigned int **)a3;
+            if ( *(_QWORD *)a3 == *(_QWORD *)(a3 + 8) )
+            {
+              *(_DWORD *)(a3 + 24) = 0;
+              *(_DWORD *)(a3 + 16) = 0;
+            }
+            else
+            {
+              v64 = *v63;
+              *(_QWORD *)a3 = v63 + 1;
+              *(_DWORD *)(a3 + 20) = v62 | (v64 >> (32 - (v59 - v56)));
+              *(_DWORD *)(a3 + 16) = v56 - v59 + 32;
+              *(_DWORD *)(a3 + 24) = v64 << (v59 - v56);
+            }
+          }
+          else
+          {
+            *(_DWORD *)(a3 + 24) = v61 << v59;
+            *(_DWORD *)(a3 + 16) = v56 - v59;
+          }
+        }
+        if ( &v17[v50] > v71 || v60 >= v17 - v72 )
+        {
+          if ( v76 )
+            sub_14027D7E0(v76, 0LL, 0LL);
+          v76 = 0LL;
+          v77 = 0LL;
+          if ( v80 )
+            sub_14027D7E0(v80, 0LL, 0LL);
+          return 0LL;
+        }
+        for ( i = &v17[-v60 - 1]; v50; --v50 )
+        {
+          v66 = *i++;
+          *v17++ = v66;
+        }
+        v16 = v69;
+        goto LABEL_65;
+      }
+      *v17++ = v32;
+LABEL_65:
+      v28 = v70;
+      v15 = v71;
+      if ( !v70 )
+        goto LABEL_66;
+    }
+  }
+  return 1LL;
+}
