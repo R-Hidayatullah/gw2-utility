@@ -1,6 +1,253 @@
 huffman code gw2
 
 
+
+
+.rdata:0000000141B80CDF                 db  1Ch
+.rdata:0000000141B80CE0 ; unsigned __int8 byte_141B80CE0[32]
+.rdata:0000000141B80CE0 byte_141B80CE0  db 4 dup(0), 2 dup(1), 2 dup(2), 2 dup(3), 2 dup(4), 2 dup(5)
+.rdata:0000000141B80CEE                 db 2 dup(6), 2 dup(7), 2 dup(8), 2 dup(9), 2 dup(0Ah)
+.rdata:0000000141B80CF8                 db 2 dup(0Bh), 2 dup(0Ch), 2 dup(0Dh), 2 dup(0Eh)
+.rdata:0000000141B80D00 ; unsigned __int8 byte_141B80D00[160]
+.rdata:0000000141B80D00 byte_141B80D00  db 8 dup(0), 4 dup(1), 4 dup(2), 4 dup(3), 4 dup(4), 4 dup(5)
+.rdata:0000000141B80D00                                         ; DATA XREF: sub_140468B70:loc_140468BC1↑o
+.rdata:0000000141B80D1C                 db 4 dup(6), 4 dup(7), 4 dup(8), 4 dup(9), 4 dup(0Ah)
+.rdata:0000000141B80D30                 db 4 dup(0Bh), 4 dup(0Ch), 4 dup(0Dh), 4 dup(0Eh), 4 dup(0Fh)
+.rdata:0000000141B80D44                 db 4 dup(10h), 4 dup(11h), 4 dup(12h), 4 dup(13h), 4 dup(14h)
+.rdata:0000000141B80D58                 db 4 dup(15h), 4 dup(16h), 4 dup(17h), 4 dup(18h), 4 dup(19h)
+.rdata:0000000141B80D6C                 db 4 dup(1Ah), 4 dup(1Bh), 4 dup(1Ch), 4 dup(1Dh), 0Ch dup(0)
+.rdata:0000000141B80D88                 db 4 dup(1), 4 dup(2), 4 dup(3), 4 dup(4), 4 dup(5), 4 dup(0)
+.rdata:0000000141B80DA0 aDPerforceLiveN_191 db 'D:\Perforce\Live\NAEU\v2\Code\Arena\Services\Compress\CmpDict.cpp'
+
+
+// Array 1: byte_141B80CE0 - 32 bytes
+unsigned char byteArray1[32] = { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 
+                                7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14 };
+
+// Array 2: byte_141B80D00 - 160 bytes
+unsigned char byteArray2[160] = { 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 
+                                4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 
+                                8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 11, 11, 11, 11, 
+                                12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 
+                                15, 15, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18, 
+                                19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 22, 22, 
+                                22, 22, 23, 23, 23, 23, 24, 24, 24, 24, 25, 25, 25, 25, 
+                                26, 26, 26, 26, 27, 27, 27, 27, 28, 28, 28, 28, 29, 29, 
+                                29, 29, 30, 30, 30, 30, 31, 31, 31, 31, 32, 32, 32, 32 };
+
+// Array 3: File path
+const char filePath[] = "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp";
+
+
+
+
+.rdata:0000000141B8128D                 db    0
+.rdata:0000000141B8128E                 db    0
+.rdata:0000000141B8128F                 db    0
+.rdata:0000000141B81290 ; unsigned __int8 byte_141B81290[768]
+.rdata:0000000141B81290 byte_141B81290  db 8, 9, 0Ah, 0, 7, 0Bh, 0Ch, 6, 29h, 2Ah, 0E0h, 4, 5
+.rdata:0000000141B81290                                         ; DATA XREF: sub_14046F220+147↑o
+.rdata:0000000141B81290                                         ; sub_14046F220+25D↑o
+.rdata:0000000141B8129D                 db 20h, 28h, 2Bh, 2Ch, 40h, 4Ah, 3, 0Dh, 25h, 26h, 27h
+.rdata:0000000141B812A8                 db 48h, 49h, 24h, 47h, 4Bh, 4Ch, 69h, 6Ah, 23h, 46h, 60h
+.rdata:0000000141B812B3                 db 63h, 67h, 68h, 88h, 89h, 0A0h, 0E8h, 1, 2, 2Dh, 43h
+.rdata:0000000141B812BE                 db 44h, 45h, 65h, 66h, 80h, 87h, 8Ah, 0A8h, 0A9h, 0C0h
+.rdata:0000000141B812C8                 db 0C9h, 0E9h, 0Eh, 4Dh, 64h, 6Bh, 6Ch, 84h, 85h, 8Bh
+.rdata:0000000141B812D2                 db 0A4h, 0A5h, 0AAh, 0C8h, 0E5h, 83h, 86h, 0A6h, 0A7h
+.rdata:0000000141B812DB                 db 0C7h, 0CAh, 0E7h, 22h, 2Eh, 8Ch, 0C4h, 0E4h, 0E6h, 4Eh
+.rdata:0000000141B812E5                 db 6Dh, 0C6h, 0ECh, 0Fh, 10h, 11h, 8Dh, 0ABh, 0ACh, 0CCh
+.rdata:0000000141B812EF                 db 0EAh, 12h, 13h, 14h, 15h, 16h, 17h, 18h, 19h, 1Ah, 1Bh
+.rdata:0000000141B812FA                 db 1Ch, 1Dh, 1Eh, 1Fh, 21h, 2Fh, 30h, 31h, 32h, 33h, 34h
+.rdata:0000000141B81305                 db 35h, 36h, 37h, 38h, 39h, 3Ah, 3Bh, 3Ch, 3Dh, 3Eh, 3Fh
+.rdata:0000000141B81310                 db 41h, 42h, 4Fh, 50h, 51h, 52h, 53h, 54h, 55h, 56h, 57h
+.rdata:0000000141B8131B                 db 58h, 59h, 5Ah, 5Bh, 5Ch, 5Dh, 5Eh, 5Fh, 61h, 62h, 6Eh
+.rdata:0000000141B81326                 db 6Fh, 70h, 71h, 72h, 73h, 74h, 75h, 76h, 77h, 78h, 79h
+.rdata:0000000141B81331                 db 7Ah, 7Bh, 7Ch, 7Dh, 7Eh, 7Fh, 81h, 82h, 8Eh, 8Fh, 90h
+.rdata:0000000141B8133C                 db 91h, 92h, 93h, 94h, 95h, 96h, 97h, 98h, 99h, 9Ah, 9Bh
+.rdata:0000000141B81347                 db 9Ch, 9Dh, 9Eh, 9Fh, 0A1h, 0A2h, 0A3h, 0ADh, 0AEh, 0AFh
+.rdata:0000000141B81351                 db 0B0h, 0B1h, 0B2h, 0B3h, 0B4h, 0B5h, 0B6h, 0B7h, 0B8h
+.rdata:0000000141B8135A                 db 0B9h, 0BAh, 0BBh, 0BCh, 0BDh, 0BEh, 0BFh, 0C1h, 0C2h
+.rdata:0000000141B81363                 db 0C3h, 0C5h, 0CBh, 0CDh, 0CEh, 0CFh, 0D0h, 0D1h, 0D2h
+.rdata:0000000141B8136C                 db 0D3h, 0D4h, 0D5h, 0D6h, 0D7h, 0D8h, 0D9h, 0DAh, 0DBh
+.rdata:0000000141B81375                 db 0DCh, 0DDh, 0DEh, 0DFh, 0E1h, 0E2h, 0E3h, 0EBh, 0EDh
+.rdata:0000000141B8137E                 db 0EEh, 0EFh, 0F0h, 0F1h, 0F2h, 0F3h, 0F4h, 0F5h, 0F6h
+.rdata:0000000141B81387                 db 0F7h, 0F8h, 0F9h, 0FAh, 0FBh, 0FCh, 0FDh, 0FEh, 0FFh
+.rdata:0000000141B81390                 db 4, 2 dup(0Ah), 7, 2 dup(6), 5, 4, 3 dup(3), 2 dup(4)
+.rdata:0000000141B8139D                 db 7, 0Bh, 3 dup(0Fh), 0Eh dup(10h), 6, 10h, 0Dh, 9, 8
+.rdata:0000000141B813B5                 db 3 dup(7), 6, 2 dup(5), 2 dup(6), 0Ah, 0Dh, 11h dup(10h)
+.rdata:0000000141B813D0                 db 6, 2 dup(10h), 3 dup(0Ah), 9, 8, 2 dup(7), 6, 2 dup(8)
+.rdata:0000000141B813DD                 db 0Bh, 0Eh, 11h dup(10h), 9, 2 dup(10h), 9, 0Bh, 2 dup(0Ah)
+.rdata:0000000141B813F7                 db 2 dup(9), 2 dup(8), 2 dup(0Bh), 0Eh, 12h dup(10h), 0Ah
+.rdata:0000000141B81411                 db 2 dup(10h), 0Ch, 2 dup(0Bh), 0Ch, 0Ah, 2 dup(9), 0Ah
+.rdata:0000000141B8141B                 db 0Bh, 0Dh, 0Fh, 12h dup(10h), 9, 3 dup(10h), 2 dup(0Bh)
+.rdata:0000000141B81436                 db 2 dup(0Ch), 2 dup(0Ah), 0Bh, 2 dup(0Fh), 13h dup(10h)
+.rdata:0000000141B81450                 db 0Ah, 3 dup(10h), 0Dh, 10h, 0Eh, 0Ch, 0Bh, 0Ah, 0Ch
+.rdata:0000000141B8145B                 db 10h, 0Fh, 13h dup(10h), 5, 3 dup(10h), 0Dh, 0Bh, 0Dh
+.rdata:0000000141B81477                 db 0Ch, 9, 0Ah, 0Fh, 10h, 0Eh, 13h dup(10h), 9, 1Bh, 1Ah
+.rdata:0000000141B81493                 db 2 dup(0Fh), 0Eh, 0Bh, 8, 7, 6, 5, 7, 6, 0Eh, 17h, 57h
+.rdata:0000000141B814A0                 db 56h, 55h, 9Fh, 9Eh, 9Dh, 9Ch, 9Bh, 9Ah, 99h, 98h, 97h
+.rdata:0000000141B814AB                 db 96h, 95h, 94h, 93h, 92h, 0Dh, 91h, 1Dh, 17h, 11h, 0Dh
+.rdata:0000000141B814B6                 db 0Ch, 0Bh, 0Ch, 0Ah, 9, 0Bh, 0Ah, 19h, 1Ch, 90h, 8Fh
+.rdata:0000000141B814C1                 db 8Eh, 8Dh, 8Ch, 8Bh, 8Ah, 89h, 88h, 87h, 86h, 85h, 84h
+.rdata:0000000141B814CC                 db 83h, 82h, 81h, 80h, 9, 7Fh, 7Eh, 18h, 17h, 2 dup(16h)
+.rdata:0000000141B814D7                 db 10h, 0Ah, 9, 8, 0Fh, 0Eh, 16h, 2Fh, 7Dh, 7Ch, 7Bh, 7Ah
+.rdata:0000000141B814E3                 db 79h, 78h, 77h, 76h, 75h, 74h, 73h, 72h, 71h, 70h, 6Fh
+.rdata:0000000141B814EE                 db 6Eh, 6Dh, 15h, 6Ch, 6Bh, 14h, 2 dup(15h), 14h, 13h
+.rdata:0000000141B814F8                 db 12h, 0Dh, 0Ch, 14h, 13h, 2Eh, 6Ah, 69h, 68h, 67h, 66h
+.rdata:0000000141B81503                 db 65h, 64h, 63h, 62h, 61h, 60h, 5Fh, 5Eh, 5Dh, 5Ch, 5Bh
+.rdata:0000000141B8150E                 db 5Ah, 59h, 13h, 58h, 57h, 15h, 12h, 11h, 14h, 12h, 11h
+.rdata:0000000141B81519                 db 10h, 11h, 10h, 1Bh, 54h, 56h, 55h, 54h, 53h, 52h, 51h
+.rdata:0000000141B81524                 db 50h, 4Fh, 4Eh, 4Dh, 4Ch, 4Bh, 4Ah, 49h, 48h, 47h, 46h
+.rdata:0000000141B8152F                 db 45h, 0Fh, 44h, 43h, 42h, 0Fh, 0Eh, 13h, 12h, 10h, 0Fh
+.rdata:0000000141B8153A                 db 0Dh, 53h, 52h, 41h, 40h, 3Fh, 3Eh, 3Dh, 3Ch, 3Bh, 3Ah
+.rdata:0000000141B81545                 db 39h, 38h, 37h, 36h, 35h, 34h, 33h, 32h, 31h, 30h, 2Fh
+.rdata:0000000141B81550                 db 0Eh, 2Eh, 2Dh, 2Ch, 1Ah, 2Bh, 2Dh, 11h, 0Ch, 0Dh, 10h
+.rdata:0000000141B8155B                 db 2Ah, 51h, 29h, 28h, 27h, 26h, 25h, 24h, 23h, 22h, 21h
+.rdata:0000000141B81566                 db 20h, 1Fh, 1Eh, 1Dh, 1Ch, 1Bh, 1Ah, 19h, 18h, 17h, 8
+.rdata:0000000141B81571                 db 16h, 15h, 14h, 19h, 0Bh, 18h, 0Fh, 0Eh, 0Ch, 50h, 13h
+.rdata:0000000141B8157C                 db 2Ch, 12h, 11h, 10h, 0Fh, 0Eh, 0Dh, 0Ch, 0Bh, 0Ah, 9
+.rdata:0000000141B81587                 db 8, 7, 6, 5, 4, 3, 2, 1, 0
+.rdata:0000000141B81590 aDPerforceLiveN_193 db 'D:\Perforce\Live\NAEU\v2\Code\Arena\Services\Compress\CmpHuff.cpp'
+.rdata:0000000141B81590                                         ; DATA XREF: sub_14046F220+325↑o
+.rdata:0000000141B81590                                         ; sub_14046F220+395↑o ...
+.rdata:0000000141B815D1                 db 0
+.rdata:0000000141B815D2                 align 8
+.rdata:0000000141B815D8 aCount7         db 'count <= 7',0       ; DATA XREF: sub_14046FF20+29↑o
+.rdata:0000000141B815D8                                         ; sub_140470290+14D↑o
+.rdata:0000000141B815E3                 align 8
+.rdata:0000000141B815E8 aBitcount0x1f   db 'bitCount <= 0x1f',0 ; DATA XREF: sub_14046FF20+47↑o
+.rdata:0000000141B815E8                                         ; sub_140470290+16C↑o
+.rdata:0000000141B815F9                 align 20h
+.rdata:0000000141B81600 aBitcountMaxPos db 'bitCount < MAX_POSSIBLE_BITS',0
+.rdata:0000000141B81600                                         ; DATA XREF: sub_14046F860+14B↑o
+.rdata:0000000141B8161D                 align 20h
+.rdata:0000000141B81620 aGroupcount0    db '!groupCount[0]',0   ; DATA XREF: sub_14046F860+1DE↑o
+.rdata:0000000141B8162F                 align 10h
+.rdata:0000000141B81630 aSymbolTotalsym db 'symbol < totalSymbolCount',0
+.rdata:0000000141B81630                                         ; DATA XREF: sub_14046F220+3E6↑o
+.rdata:0000000141B8164A                 align 10h
+.rdata:0000000141B81650 aHashslotHashSi db 'hashSlot < HASH_SIZE',0
+.rdata:0000000141B81650                                         ; DATA XREF: sub_14046F220+32C↑o
+.rdata:0000000141B81650                                         ; sub_141102FD0+BC↑o
+.rdata:0000000141B81665                 align 8
+.rdata:0000000141B81668 aProcessedSymbo db 'processed <= symbolCount',0
+.rdata:0000000141B81668                                         ; DATA XREF: sub_14046F220+39C↑o
+.rdata:0000000141B81681                 align 10h
+.rdata:0000000141B81690 unk_141B81690   db    0                 ; DATA XREF: sub_140470500+3F↑o
+
+unsigned char byteArray[] = {
+    0x08, 0x09, 0x0A, 0x00, 0x07, 0x0B, 0x0C, 0x06, 
+    0x29, 0x2A, 0xE0, 0x04, 0x05, 0x20, 0x28, 0x2B, 
+    0x2C, 0x40, 0x4A, 0x03, 0x0D, 0x25, 0x26, 0x27, 
+    0x48, 0x49, 0x24, 0x47, 0x4B, 0x4C, 0x69, 0x6A, 
+    0x23, 0x46, 0x60, 0x63, 0x67, 0x68, 0x88, 0x89, 
+    0xA0, 0xE8, 0x01, 0x02, 0x2D, 0x43, 0x44, 0x45, 
+    0x65, 0x66, 0x80, 0x87, 0x8A, 0xA8, 0xA9, 0xC0, 
+    0xC9, 0xE9, 0x0E, 0x4D, 0x64, 0x6B, 0x6C, 0x84, 
+    0x85, 0x8B, 0xA4, 0xA5, 0xAA, 0xC8, 0xE5, 0x83, 
+    0x86, 0xA6, 0xA7, 0xC7, 0xCA, 0xE7, 0x22, 0x2E, 
+    0x8C, 0xC4, 0xE4, 0xE6, 0x4E, 0x6D, 0xC6, 0xEC, 
+    0x0F, 0x10, 0x11, 0x8D, 0xAB, 0xAC, 0xCC, 0xEA, 
+    0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 
+    0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x21, 0x2F, 
+    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 
+    0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 
+    0x41, 0x42, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 
+    0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 
+    0x5D, 0x5E, 0x5F, 0x61, 0x62, 0x6E, 0x6F, 0x70, 
+    0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 
+    0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x81, 
+    0x82, 0x8E, 0x8F, 0x90, 0x91, 0x92, 0x93, 0x94, 
+    0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 
+    0x9D, 0x9E, 0x9F, 0xA1, 0xA2, 0xA3, 0xAD, 0xAE, 
+    0xAF, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 
+    0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 
+    0xBF, 0xC1, 0xC2, 0xC3, 0xC5, 0xCB, 0xCD, 0xCE, 
+    0xCF, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 
+    0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 
+    0xDF, 0xE1, 0xE2, 0xE3, 0xEB, 0xED, 0xEE, 0xEF, 
+    0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 
+    0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, 
+    0x04, 0x0A, 0x0A, 0x07, 0x06, 0x05, 0x03, 0x03, 
+    0x04, 0x04, 0x0B, 0x0F, 0x10, 0x10, 0x06, 0x0A, 
+    0x0C, 0x0B, 0x0F, 0x12, 0x10, 0x10, 0x0A, 0x00
+};
+
+const char* filePath = "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpHuff.cpp";
+
+
+
+
+
+.rdata:0000000141B80BBF                 db    0
+.rdata:0000000141B80BC0 ; unsigned __int8 byte_141B80BC0[320]
+.rdata:0000000141B80BC0 byte_141B80BC0  db 0, 1, 2, 3, 2 dup(4), 2 dup(5), 4 dup(6), 4 dup(7)
+.rdata:0000000141B80BC0                                         ; DATA XREF: sub_140464630+11↑o
+.rdata:0000000141B80BC0                                         ; sub_140464630+45↑o
+.rdata:0000000141B80BD0                 db 8 dup(8), 8 dup(9), 0, 1, 2, 3, 4, 5, 6, 7, 2 dup(8)
+.rdata:0000000141B80BEA                 db 2 dup(9), 2 dup(0Ah), 2 dup(0Bh), 4 dup(0Ch), 4 dup(0Dh)
+.rdata:0000000141B80BF8                 db 4 dup(0Eh), 4 dup(0Fh), 8 dup(10h), 8 dup(11h), 8 dup(12h)
+.rdata:0000000141B80C18                 db 8 dup(13h), 10h dup(14h), 10h dup(15h), 10h dup(16h)
+.rdata:0000000141B80C50                 db 10h dup(17h), 20h dup(18h), 20h dup(19h), 20h dup(1Ah)
+.rdata:0000000141B80CC0                 db 1Fh dup(1Bh), 1Ch, 4 dup(0), 2 dup(1), 2 dup(2), 2 dup(3)
+.rdata:0000000141B80CEA                 db 2 dup(4), 2 dup(5), 2 dup(6), 2 dup(7), 2 dup(8), 2 dup(9)
+.rdata:0000000141B80CF6                 db 2 dup(0Ah), 2 dup(0Bh), 2 dup(0Ch), 2 dup(0Dh), 2 dup(0Eh)
+.rdata:0000000141B80D00 unk_141B80D00   db    0                 ; DATA XREF: sub_140468B70:loc_140468BC1↑o
+.rdata:0000000141B80D01                 db    0
+
+// Array 1: byte_141B80BBF - 1 byte
+unsigned char byteValue = 0;
+
+// Array 2: byte_141B80BC0 - 320 bytes
+unsigned char byteArray3[320] = { 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 
+                                8, 8, 9, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 9, 9, 
+                                10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 
+                                17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 23, 
+                                24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 29, 30, 30, 
+                                31, 31, 32, 32, 33, 33, 34, 34, 35, 35, 36, 36, 37, 37, 
+                                38, 38, 39, 39, 40, 40, 41, 41, 42, 42, 43, 43, 44, 44, 
+                                45, 45, 46, 46, 47, 47, 48, 48, 49, 49, 50, 50, 51, 51, 
+                                52, 52, 53, 53, 54, 54, 55, 55, 56, 56, 57, 57, 58, 58, 
+                                59, 59, 60, 60, 61, 61, 62, 62, 63, 63, 64, 64, 65, 65, 
+                                66, 66, 67, 67, 68, 68, 69, 69, 70, 70, 71, 71, 72, 72, 
+                                73, 73, 74, 74, 75, 75, 76, 76, 77, 77, 78, 78, 79, 79, 
+                                80, 80, 81, 81, 82, 82, 83, 83, 84, 84, 85, 85, 86, 86, 
+                                87, 87, 88, 88, 89, 89, 90, 90, 91, 91, 92, 92, 93, 93, 
+                                94, 94, 95, 95, 96, 96, 97, 97, 98, 98, 99, 99, 100, 100, 
+                                101, 101, 102, 102, 103, 103, 104, 104, 105, 105, 106, 106, 
+                                107, 107, 108, 108, 109, 109, 110, 110, 111, 111, 112, 112, 
+                                113, 113, 114, 114, 115, 115, 116, 116, 117, 117, 118, 118, 
+                                119, 119, 120, 120, 121, 121, 122, 122, 123, 123, 124, 124, 
+                                125, 125, 126, 126, 127, 127, 128, 128, 129, 129, 130, 130, 
+                                131, 131, 132, 132, 133, 133, 134, 134, 135, 135, 136, 136, 
+                                137, 137, 138, 138, 139, 139, 140, 140, 141, 141, 142, 142, 
+                                143, 143, 144, 144, 145, 145, 146, 146, 147, 147, 148, 148, 
+                                149, 149, 150, 150, 151, 151, 152, 152, 153, 153, 154, 154, 
+                                155, 155, 156, 156, 157, 157, 158, 158, 159, 159, 160, 160, 
+                                161, 161, 162, 162, 163, 163, 164, 164, 165, 165, 166, 166, 
+                                167, 167, 168, 168, 169, 169, 170, 170, 171, 171, 172, 172, 
+                                173, 173, 174, 174, 175, 175, 176, 176, 177, 177, 178, 178, 
+                                179, 179, 180, 180, 181, 181, 182, 182, 183, 183, 184, 184, 
+                                185, 185, 186, 186, 187, 187, 188, 188, 189, 189, 190, 190, 
+                                191, 191, 192, 192, 193, 193, 194, 194, 195, 195, 196, 196, 
+                                197, 197, 198, 198, 199, 199, 200, 200, 201, 201, 202, 202, 
+                                203, 203, 204, 204, 205, 205, 206, 206, 207, 207, 208, 208, 
+                                209, 209, 210, 210, 211, 211, 212, 212, 213, 213, 214, 214, 
+                                215, 215, 216, 216, 217, 217, 218, 218, 219, 219, 220, 220, 
+                                221, 221, 222, 222, 223, 223, 224, 224, 225, 225, 226, 226, 
+                                227, 227, 228, 228, 229, 229, 230, 230, 231, 231, 232, 232, 
+                                233, 233, 234, 234, 235, 235, 236, 236, 237, 237, 238, 238, 
+                                239, 239, 240, 240, 241, 241, 242, 242, 243, 243, 244, 244, 
+                                245, 245, 246, 246, 247, 247, 248, 248, 249, 249, 250, 250, 
+                                251, 251, 252, 252, 253, 253, 254, 254, 255, 255 };
+
+// Array 3: unk_141B80D00 - 1 byte
+unsigned char unkValue = 0;
+
+
+
+
+
 __int64 __fastcall sub_14046F220(__int64 a1, __int64 a2)
 {
   unsigned int v4; // r13d
@@ -377,141 +624,6 @@ __int64 sub_14024CE90()
   }
   return (unsigned int)dword_142584518;
 }
-
-
-.rdata:0000000141B8128D                 db    0
-.rdata:0000000141B8128E                 db    0
-.rdata:0000000141B8128F                 db    0
-.rdata:0000000141B81290 ; unsigned __int8 byte_141B81290[768]
-.rdata:0000000141B81290 byte_141B81290  db 8, 9, 0Ah, 0, 7, 0Bh, 0Ch, 6, 29h, 2Ah, 0E0h, 4, 5
-.rdata:0000000141B81290                                         ; DATA XREF: sub_14046F220+147↑o
-.rdata:0000000141B81290                                         ; sub_14046F220+25D↑o
-.rdata:0000000141B8129D                 db 20h, 28h, 2Bh, 2Ch, 40h, 4Ah, 3, 0Dh, 25h, 26h, 27h
-.rdata:0000000141B812A8                 db 48h, 49h, 24h, 47h, 4Bh, 4Ch, 69h, 6Ah, 23h, 46h, 60h
-.rdata:0000000141B812B3                 db 63h, 67h, 68h, 88h, 89h, 0A0h, 0E8h, 1, 2, 2Dh, 43h
-.rdata:0000000141B812BE                 db 44h, 45h, 65h, 66h, 80h, 87h, 8Ah, 0A8h, 0A9h, 0C0h
-.rdata:0000000141B812C8                 db 0C9h, 0E9h, 0Eh, 4Dh, 64h, 6Bh, 6Ch, 84h, 85h, 8Bh
-.rdata:0000000141B812D2                 db 0A4h, 0A5h, 0AAh, 0C8h, 0E5h, 83h, 86h, 0A6h, 0A7h
-.rdata:0000000141B812DB                 db 0C7h, 0CAh, 0E7h, 22h, 2Eh, 8Ch, 0C4h, 0E4h, 0E6h, 4Eh
-.rdata:0000000141B812E5                 db 6Dh, 0C6h, 0ECh, 0Fh, 10h, 11h, 8Dh, 0ABh, 0ACh, 0CCh
-.rdata:0000000141B812EF                 db 0EAh, 12h, 13h, 14h, 15h, 16h, 17h, 18h, 19h, 1Ah, 1Bh
-.rdata:0000000141B812FA                 db 1Ch, 1Dh, 1Eh, 1Fh, 21h, 2Fh, 30h, 31h, 32h, 33h, 34h
-.rdata:0000000141B81305                 db 35h, 36h, 37h, 38h, 39h, 3Ah, 3Bh, 3Ch, 3Dh, 3Eh, 3Fh
-.rdata:0000000141B81310                 db 41h, 42h, 4Fh, 50h, 51h, 52h, 53h, 54h, 55h, 56h, 57h
-.rdata:0000000141B8131B                 db 58h, 59h, 5Ah, 5Bh, 5Ch, 5Dh, 5Eh, 5Fh, 61h, 62h, 6Eh
-.rdata:0000000141B81326                 db 6Fh, 70h, 71h, 72h, 73h, 74h, 75h, 76h, 77h, 78h, 79h
-.rdata:0000000141B81331                 db 7Ah, 7Bh, 7Ch, 7Dh, 7Eh, 7Fh, 81h, 82h, 8Eh, 8Fh, 90h
-.rdata:0000000141B8133C                 db 91h, 92h, 93h, 94h, 95h, 96h, 97h, 98h, 99h, 9Ah, 9Bh
-.rdata:0000000141B81347                 db 9Ch, 9Dh, 9Eh, 9Fh, 0A1h, 0A2h, 0A3h, 0ADh, 0AEh, 0AFh
-.rdata:0000000141B81351                 db 0B0h, 0B1h, 0B2h, 0B3h, 0B4h, 0B5h, 0B6h, 0B7h, 0B8h
-.rdata:0000000141B8135A                 db 0B9h, 0BAh, 0BBh, 0BCh, 0BDh, 0BEh, 0BFh, 0C1h, 0C2h
-.rdata:0000000141B81363                 db 0C3h, 0C5h, 0CBh, 0CDh, 0CEh, 0CFh, 0D0h, 0D1h, 0D2h
-.rdata:0000000141B8136C                 db 0D3h, 0D4h, 0D5h, 0D6h, 0D7h, 0D8h, 0D9h, 0DAh, 0DBh
-.rdata:0000000141B81375                 db 0DCh, 0DDh, 0DEh, 0DFh, 0E1h, 0E2h, 0E3h, 0EBh, 0EDh
-.rdata:0000000141B8137E                 db 0EEh, 0EFh, 0F0h, 0F1h, 0F2h, 0F3h, 0F4h, 0F5h, 0F6h
-.rdata:0000000141B81387                 db 0F7h, 0F8h, 0F9h, 0FAh, 0FBh, 0FCh, 0FDh, 0FEh, 0FFh
-.rdata:0000000141B81390                 db 4, 2 dup(0Ah), 7, 2 dup(6), 5, 4, 3 dup(3), 2 dup(4)
-.rdata:0000000141B8139D                 db 7, 0Bh, 3 dup(0Fh), 0Eh dup(10h), 6, 10h, 0Dh, 9, 8
-.rdata:0000000141B813B5                 db 3 dup(7), 6, 2 dup(5), 2 dup(6), 0Ah, 0Dh, 11h dup(10h)
-.rdata:0000000141B813D0                 db 6, 2 dup(10h), 3 dup(0Ah), 9, 8, 2 dup(7), 6, 2 dup(8)
-.rdata:0000000141B813DD                 db 0Bh, 0Eh, 11h dup(10h), 9, 2 dup(10h), 9, 0Bh, 2 dup(0Ah)
-.rdata:0000000141B813F7                 db 2 dup(9), 2 dup(8), 2 dup(0Bh), 0Eh, 12h dup(10h), 0Ah
-.rdata:0000000141B81411                 db 2 dup(10h), 0Ch, 2 dup(0Bh), 0Ch, 0Ah, 2 dup(9), 0Ah
-.rdata:0000000141B8141B                 db 0Bh, 0Dh, 0Fh, 12h dup(10h), 9, 3 dup(10h), 2 dup(0Bh)
-.rdata:0000000141B81436                 db 2 dup(0Ch), 2 dup(0Ah), 0Bh, 2 dup(0Fh), 13h dup(10h)
-.rdata:0000000141B81450                 db 0Ah, 3 dup(10h), 0Dh, 10h, 0Eh, 0Ch, 0Bh, 0Ah, 0Ch
-.rdata:0000000141B8145B                 db 10h, 0Fh, 13h dup(10h), 5, 3 dup(10h), 0Dh, 0Bh, 0Dh
-.rdata:0000000141B81477                 db 0Ch, 9, 0Ah, 0Fh, 10h, 0Eh, 13h dup(10h), 9, 1Bh, 1Ah
-.rdata:0000000141B81493                 db 2 dup(0Fh), 0Eh, 0Bh, 8, 7, 6, 5, 7, 6, 0Eh, 17h, 57h
-.rdata:0000000141B814A0                 db 56h, 55h, 9Fh, 9Eh, 9Dh, 9Ch, 9Bh, 9Ah, 99h, 98h, 97h
-.rdata:0000000141B814AB                 db 96h, 95h, 94h, 93h, 92h, 0Dh, 91h, 1Dh, 17h, 11h, 0Dh
-.rdata:0000000141B814B6                 db 0Ch, 0Bh, 0Ch, 0Ah, 9, 0Bh, 0Ah, 19h, 1Ch, 90h, 8Fh
-.rdata:0000000141B814C1                 db 8Eh, 8Dh, 8Ch, 8Bh, 8Ah, 89h, 88h, 87h, 86h, 85h, 84h
-.rdata:0000000141B814CC                 db 83h, 82h, 81h, 80h, 9, 7Fh, 7Eh, 18h, 17h, 2 dup(16h)
-.rdata:0000000141B814D7                 db 10h, 0Ah, 9, 8, 0Fh, 0Eh, 16h, 2Fh, 7Dh, 7Ch, 7Bh, 7Ah
-.rdata:0000000141B814E3                 db 79h, 78h, 77h, 76h, 75h, 74h, 73h, 72h, 71h, 70h, 6Fh
-.rdata:0000000141B814EE                 db 6Eh, 6Dh, 15h, 6Ch, 6Bh, 14h, 2 dup(15h), 14h, 13h
-.rdata:0000000141B814F8                 db 12h, 0Dh, 0Ch, 14h, 13h, 2Eh, 6Ah, 69h, 68h, 67h, 66h
-.rdata:0000000141B81503                 db 65h, 64h, 63h, 62h, 61h, 60h, 5Fh, 5Eh, 5Dh, 5Ch, 5Bh
-.rdata:0000000141B8150E                 db 5Ah, 59h, 13h, 58h, 57h, 15h, 12h, 11h, 14h, 12h, 11h
-.rdata:0000000141B81519                 db 10h, 11h, 10h, 1Bh, 54h, 56h, 55h, 54h, 53h, 52h, 51h
-.rdata:0000000141B81524                 db 50h, 4Fh, 4Eh, 4Dh, 4Ch, 4Bh, 4Ah, 49h, 48h, 47h, 46h
-.rdata:0000000141B8152F                 db 45h, 0Fh, 44h, 43h, 42h, 0Fh, 0Eh, 13h, 12h, 10h, 0Fh
-.rdata:0000000141B8153A                 db 0Dh, 53h, 52h, 41h, 40h, 3Fh, 3Eh, 3Dh, 3Ch, 3Bh, 3Ah
-.rdata:0000000141B81545                 db 39h, 38h, 37h, 36h, 35h, 34h, 33h, 32h, 31h, 30h, 2Fh
-.rdata:0000000141B81550                 db 0Eh, 2Eh, 2Dh, 2Ch, 1Ah, 2Bh, 2Dh, 11h, 0Ch, 0Dh, 10h
-.rdata:0000000141B8155B                 db 2Ah, 51h, 29h, 28h, 27h, 26h, 25h, 24h, 23h, 22h, 21h
-.rdata:0000000141B81566                 db 20h, 1Fh, 1Eh, 1Dh, 1Ch, 1Bh, 1Ah, 19h, 18h, 17h, 8
-.rdata:0000000141B81571                 db 16h, 15h, 14h, 19h, 0Bh, 18h, 0Fh, 0Eh, 0Ch, 50h, 13h
-.rdata:0000000141B8157C                 db 2Ch, 12h, 11h, 10h, 0Fh, 0Eh, 0Dh, 0Ch, 0Bh, 0Ah, 9
-.rdata:0000000141B81587                 db 8, 7, 6, 5, 4, 3, 2, 1, 0
-.rdata:0000000141B81590 aDPerforceLiveN_193 db 'D:\Perforce\Live\NAEU\v2\Code\Arena\Services\Compress\CmpHuff.cpp'
-.rdata:0000000141B81590                                         ; DATA XREF: sub_14046F220+325↑o
-.rdata:0000000141B81590                                         ; sub_14046F220+395↑o ...
-.rdata:0000000141B815D1                 db 0
-.rdata:0000000141B815D2                 align 8
-.rdata:0000000141B815D8 aCount7         db 'count <= 7',0       ; DATA XREF: sub_14046FF20+29↑o
-.rdata:0000000141B815D8                                         ; sub_140470290+14D↑o
-.rdata:0000000141B815E3                 align 8
-.rdata:0000000141B815E8 aBitcount0x1f   db 'bitCount <= 0x1f',0 ; DATA XREF: sub_14046FF20+47↑o
-.rdata:0000000141B815E8                                         ; sub_140470290+16C↑o
-.rdata:0000000141B815F9                 align 20h
-.rdata:0000000141B81600 aBitcountMaxPos db 'bitCount < MAX_POSSIBLE_BITS',0
-.rdata:0000000141B81600                                         ; DATA XREF: sub_14046F860+14B↑o
-.rdata:0000000141B8161D                 align 20h
-.rdata:0000000141B81620 aGroupcount0    db '!groupCount[0]',0   ; DATA XREF: sub_14046F860+1DE↑o
-.rdata:0000000141B8162F                 align 10h
-.rdata:0000000141B81630 aSymbolTotalsym db 'symbol < totalSymbolCount',0
-.rdata:0000000141B81630                                         ; DATA XREF: sub_14046F220+3E6↑o
-.rdata:0000000141B8164A                 align 10h
-.rdata:0000000141B81650 aHashslotHashSi db 'hashSlot < HASH_SIZE',0
-.rdata:0000000141B81650                                         ; DATA XREF: sub_14046F220+32C↑o
-.rdata:0000000141B81650                                         ; sub_141102FD0+BC↑o
-.rdata:0000000141B81665                 align 8
-.rdata:0000000141B81668 aProcessedSymbo db 'processed <= symbolCount',0
-.rdata:0000000141B81668                                         ; DATA XREF: sub_14046F220+39C↑o
-.rdata:0000000141B81681                 align 10h
-.rdata:0000000141B81690 unk_141B81690   db    0                 ; DATA XREF: sub_140470500+3F↑o
-
-unsigned char byteArray[] = {
-    0x08, 0x09, 0x0A, 0x00, 0x07, 0x0B, 0x0C, 0x06, 
-    0x29, 0x2A, 0xE0, 0x04, 0x05, 0x20, 0x28, 0x2B, 
-    0x2C, 0x40, 0x4A, 0x03, 0x0D, 0x25, 0x26, 0x27, 
-    0x48, 0x49, 0x24, 0x47, 0x4B, 0x4C, 0x69, 0x6A, 
-    0x23, 0x46, 0x60, 0x63, 0x67, 0x68, 0x88, 0x89, 
-    0xA0, 0xE8, 0x01, 0x02, 0x2D, 0x43, 0x44, 0x45, 
-    0x65, 0x66, 0x80, 0x87, 0x8A, 0xA8, 0xA9, 0xC0, 
-    0xC9, 0xE9, 0x0E, 0x4D, 0x64, 0x6B, 0x6C, 0x84, 
-    0x85, 0x8B, 0xA4, 0xA5, 0xAA, 0xC8, 0xE5, 0x83, 
-    0x86, 0xA6, 0xA7, 0xC7, 0xCA, 0xE7, 0x22, 0x2E, 
-    0x8C, 0xC4, 0xE4, 0xE6, 0x4E, 0x6D, 0xC6, 0xEC, 
-    0x0F, 0x10, 0x11, 0x8D, 0xAB, 0xAC, 0xCC, 0xEA, 
-    0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 
-    0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x21, 0x2F, 
-    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 
-    0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 
-    0x41, 0x42, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 
-    0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x5B, 0x5C, 
-    0x5D, 0x5E, 0x5F, 0x61, 0x62, 0x6E, 0x6F, 0x70, 
-    0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 
-    0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0x81, 
-    0x82, 0x8E, 0x8F, 0x90, 0x91, 0x92, 0x93, 0x94, 
-    0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 
-    0x9D, 0x9E, 0x9F, 0xA1, 0xA2, 0xA3, 0xAD, 0xAE, 
-    0xAF, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 
-    0xB7, 0xB8, 0xB9, 0xBA, 0xBB, 0xBC, 0xBD, 0xBE, 
-    0xBF, 0xC1, 0xC2, 0xC3, 0xC5, 0xCB, 0xCD, 0xCE, 
-    0xCF, 0xD0, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 
-    0xD7, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 
-    0xDF, 0xE1, 0xE2, 0xE3, 0xEB, 0xED, 0xEE, 0xEF, 
-    0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 
-    0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF, 
-    0x04, 0x0A, 0x0A, 0x07, 0x06, 0x05, 0x03, 0x03, 
-    0x04, 0x04, 0x0B, 0x0F, 0x10, 0x10, 0x06, 0x0A, 
-    0x0C, 0x0B, 0x0F, 0x12, 0x10, 0x10, 0x0A, 0x00
-};
-
-const char* filePath = "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpHuff.cpp";
 
 
 
@@ -1440,72 +1552,6 @@ void __fastcall sub_140451750(_QWORD *a1, __int64 a2)
     LeaveCriticalSection(&stru_142814360);
   }
 }
-
-
-.rdata:0000000141B80BBF                 db    0
-.rdata:0000000141B80BC0 ; unsigned __int8 byte_141B80BC0[320]
-.rdata:0000000141B80BC0 byte_141B80BC0  db 0, 1, 2, 3, 2 dup(4), 2 dup(5), 4 dup(6), 4 dup(7)
-.rdata:0000000141B80BC0                                         ; DATA XREF: sub_140464630+11↑o
-.rdata:0000000141B80BC0                                         ; sub_140464630+45↑o
-.rdata:0000000141B80BD0                 db 8 dup(8), 8 dup(9), 0, 1, 2, 3, 4, 5, 6, 7, 2 dup(8)
-.rdata:0000000141B80BEA                 db 2 dup(9), 2 dup(0Ah), 2 dup(0Bh), 4 dup(0Ch), 4 dup(0Dh)
-.rdata:0000000141B80BF8                 db 4 dup(0Eh), 4 dup(0Fh), 8 dup(10h), 8 dup(11h), 8 dup(12h)
-.rdata:0000000141B80C18                 db 8 dup(13h), 10h dup(14h), 10h dup(15h), 10h dup(16h)
-.rdata:0000000141B80C50                 db 10h dup(17h), 20h dup(18h), 20h dup(19h), 20h dup(1Ah)
-.rdata:0000000141B80CC0                 db 1Fh dup(1Bh), 1Ch, 4 dup(0), 2 dup(1), 2 dup(2), 2 dup(3)
-.rdata:0000000141B80CEA                 db 2 dup(4), 2 dup(5), 2 dup(6), 2 dup(7), 2 dup(8), 2 dup(9)
-.rdata:0000000141B80CF6                 db 2 dup(0Ah), 2 dup(0Bh), 2 dup(0Ch), 2 dup(0Dh), 2 dup(0Eh)
-.rdata:0000000141B80D00 unk_141B80D00   db    0                 ; DATA XREF: sub_140468B70:loc_140468BC1↑o
-.rdata:0000000141B80D01                 db    0
-
-// Array 1: byte_141B80BBF - 1 byte
-unsigned char byteValue = 0;
-
-// Array 2: byte_141B80BC0 - 320 bytes
-unsigned char byteArray3[320] = { 0, 1, 2, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 
-                                8, 8, 9, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 9, 9, 
-                                10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16, 16, 
-                                17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 23, 
-                                24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 29, 30, 30, 
-                                31, 31, 32, 32, 33, 33, 34, 34, 35, 35, 36, 36, 37, 37, 
-                                38, 38, 39, 39, 40, 40, 41, 41, 42, 42, 43, 43, 44, 44, 
-                                45, 45, 46, 46, 47, 47, 48, 48, 49, 49, 50, 50, 51, 51, 
-                                52, 52, 53, 53, 54, 54, 55, 55, 56, 56, 57, 57, 58, 58, 
-                                59, 59, 60, 60, 61, 61, 62, 62, 63, 63, 64, 64, 65, 65, 
-                                66, 66, 67, 67, 68, 68, 69, 69, 70, 70, 71, 71, 72, 72, 
-                                73, 73, 74, 74, 75, 75, 76, 76, 77, 77, 78, 78, 79, 79, 
-                                80, 80, 81, 81, 82, 82, 83, 83, 84, 84, 85, 85, 86, 86, 
-                                87, 87, 88, 88, 89, 89, 90, 90, 91, 91, 92, 92, 93, 93, 
-                                94, 94, 95, 95, 96, 96, 97, 97, 98, 98, 99, 99, 100, 100, 
-                                101, 101, 102, 102, 103, 103, 104, 104, 105, 105, 106, 106, 
-                                107, 107, 108, 108, 109, 109, 110, 110, 111, 111, 112, 112, 
-                                113, 113, 114, 114, 115, 115, 116, 116, 117, 117, 118, 118, 
-                                119, 119, 120, 120, 121, 121, 122, 122, 123, 123, 124, 124, 
-                                125, 125, 126, 126, 127, 127, 128, 128, 129, 129, 130, 130, 
-                                131, 131, 132, 132, 133, 133, 134, 134, 135, 135, 136, 136, 
-                                137, 137, 138, 138, 139, 139, 140, 140, 141, 141, 142, 142, 
-                                143, 143, 144, 144, 145, 145, 146, 146, 147, 147, 148, 148, 
-                                149, 149, 150, 150, 151, 151, 152, 152, 153, 153, 154, 154, 
-                                155, 155, 156, 156, 157, 157, 158, 158, 159, 159, 160, 160, 
-                                161, 161, 162, 162, 163, 163, 164, 164, 165, 165, 166, 166, 
-                                167, 167, 168, 168, 169, 169, 170, 170, 171, 171, 172, 172, 
-                                173, 173, 174, 174, 175, 175, 176, 176, 177, 177, 178, 178, 
-                                179, 179, 180, 180, 181, 181, 182, 182, 183, 183, 184, 184, 
-                                185, 185, 186, 186, 187, 187, 188, 188, 189, 189, 190, 190, 
-                                191, 191, 192, 192, 193, 193, 194, 194, 195, 195, 196, 196, 
-                                197, 197, 198, 198, 199, 199, 200, 200, 201, 201, 202, 202, 
-                                203, 203, 204, 204, 205, 205, 206, 206, 207, 207, 208, 208, 
-                                209, 209, 210, 210, 211, 211, 212, 212, 213, 213, 214, 214, 
-                                215, 215, 216, 216, 217, 217, 218, 218, 219, 219, 220, 220, 
-                                221, 221, 222, 222, 223, 223, 224, 224, 225, 225, 226, 226, 
-                                227, 227, 228, 228, 229, 229, 230, 230, 231, 231, 232, 232, 
-                                233, 233, 234, 234, 235, 235, 236, 236, 237, 237, 238, 238, 
-                                239, 239, 240, 240, 241, 241, 242, 242, 243, 243, 244, 244, 
-                                245, 245, 246, 246, 247, 247, 248, 248, 249, 249, 250, 250, 
-                                251, 251, 252, 252, 253, 253, 254, 254, 255, 255 };
-
-// Array 3: unk_141B80D00 - 1 byte
-unsigned char unkValue = 0;
 
 
 
@@ -2973,42 +3019,6 @@ __int64 __fastcall sub_1403DE630(__int64 a1, __int64 a2, __int64 a3, __int64 a4)
 }
 
 
-
-
-.rdata:0000000141B80CDF                 db  1Ch
-.rdata:0000000141B80CE0 ; unsigned __int8 byte_141B80CE0[32]
-.rdata:0000000141B80CE0 byte_141B80CE0  db 4 dup(0), 2 dup(1), 2 dup(2), 2 dup(3), 2 dup(4), 2 dup(5)
-.rdata:0000000141B80CEE                 db 2 dup(6), 2 dup(7), 2 dup(8), 2 dup(9), 2 dup(0Ah)
-.rdata:0000000141B80CF8                 db 2 dup(0Bh), 2 dup(0Ch), 2 dup(0Dh), 2 dup(0Eh)
-.rdata:0000000141B80D00 ; unsigned __int8 byte_141B80D00[160]
-.rdata:0000000141B80D00 byte_141B80D00  db 8 dup(0), 4 dup(1), 4 dup(2), 4 dup(3), 4 dup(4), 4 dup(5)
-.rdata:0000000141B80D00                                         ; DATA XREF: sub_140468B70:loc_140468BC1↑o
-.rdata:0000000141B80D1C                 db 4 dup(6), 4 dup(7), 4 dup(8), 4 dup(9), 4 dup(0Ah)
-.rdata:0000000141B80D30                 db 4 dup(0Bh), 4 dup(0Ch), 4 dup(0Dh), 4 dup(0Eh), 4 dup(0Fh)
-.rdata:0000000141B80D44                 db 4 dup(10h), 4 dup(11h), 4 dup(12h), 4 dup(13h), 4 dup(14h)
-.rdata:0000000141B80D58                 db 4 dup(15h), 4 dup(16h), 4 dup(17h), 4 dup(18h), 4 dup(19h)
-.rdata:0000000141B80D6C                 db 4 dup(1Ah), 4 dup(1Bh), 4 dup(1Ch), 4 dup(1Dh), 0Ch dup(0)
-.rdata:0000000141B80D88                 db 4 dup(1), 4 dup(2), 4 dup(3), 4 dup(4), 4 dup(5), 4 dup(0)
-.rdata:0000000141B80DA0 aDPerforceLiveN_191 db 'D:\Perforce\Live\NAEU\v2\Code\Arena\Services\Compress\CmpDict.cpp'
-
-
-// Array 1: byte_141B80CE0 - 32 bytes
-unsigned char byteArray1[32] = { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 
-                                7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14 };
-
-// Array 2: byte_141B80D00 - 160 bytes
-unsigned char byteArray2[160] = { 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 
-                                4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 
-                                8, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 11, 11, 11, 11, 
-                                12, 12, 12, 12, 13, 13, 13, 13, 14, 14, 14, 14, 15, 15, 
-                                15, 15, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18, 
-                                19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 22, 22, 
-                                22, 22, 23, 23, 23, 23, 24, 24, 24, 24, 25, 25, 25, 25, 
-                                26, 26, 26, 26, 27, 27, 27, 27, 28, 28, 28, 28, 29, 29, 
-                                29, 29, 30, 30, 30, 30, 31, 31, 31, 31, 32, 32, 32, 32 };
-
-// Array 3: File path
-const char filePath[] = "D:\\Perforce\\Live\\NAEU\\v2\\Code\\Arena\\Services\\Compress\\CmpDict.cpp";
 
 
 
