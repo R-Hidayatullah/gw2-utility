@@ -13,63 +13,24 @@
 LittleEndian();
 // Stack utlity in case of recursion of types like struct*, array<struct>* etc..
 #define STACK_SIZE 256
-// Stack utility for counts (uint32) and offsets (uint64)
 
-#define STACK_SIZE 256
-
-void pushData(uint32 ioStack[], uint32& ioStackSize, uint32 iValue)
+void push(uint32 ioStack[], uint32& ioStackSize, uint32 iValue)
 {
     ioStack[ioStackSize] = iValue;
     ++ioStackSize;
 }
 
-uint32 getValueData(uint32 ioStack[], uint32& ioStackSize, uint16 iOffset)
+uint32 getValue(uint32 ioStack[], uint32& ioStackSize, uint16 iOffset)
 {
     return ioStack[ioStackSize - 1 - iOffset];
 }
 
-void popData(uint32& ioStackSize)
+void pop(uint32& ioStackSize)
 {
     --ioStackSize;
 }
 
-// For counts (32-bit)
-void pushCountData(uint32 ioStack[], uint32& ioStackSize, uint32 iValue)
-{
-    ioStack[ioStackSize] = iValue;
-    ++ioStackSize;
-}
-
-uint32 getCountValueData(uint32 ioStack[], uint32& ioStackSize, uint16 iOffset)
-{
-    return ioStack[ioStackSize - 1 - iOffset];
-}
-
-void popCountData(uint32& ioStackSize)
-{
-    --ioStackSize;
-}
-
-// For offsets (64-bit)
-void pushOffsetData(uint64 ioStack[], uint32& ioStackSize, uint64 iValue)
-{
-    ioStack[ioStackSize] = iValue;
-    ++ioStackSize;
-}
-
-uint64 getOffsetValueData(uint64 ioStack[], uint32& ioStackSize, uint16 iOffset)
-{
-    return ioStack[ioStackSize - 1 - iOffset];
-}
-
-void popOffsetData(uint32& ioStackSize)
-{
-    --ioStackSize;
-}
-
-// Global stacks
-
-local uint64 sOffsetStack[STACK_SIZE];
+local uint32 sOffsetStack[STACK_SIZE];
 local uint32 sOffsetStackSize = 0;
 
 local uint32 sCountStack[STACK_SIZE];
@@ -78,51 +39,50 @@ local uint32 sCountStackSize = 0;
 local uint32 sLoopIndexStack[STACK_SIZE];
 local uint32 sLoopIndexStackSize = 0;
 
-// Wrapper functions
+void pushOffset(uint32 iValue) { push(sOffsetStack, sOffsetStackSize, iValue); }
+uint32 getOffsetValue(uint16 iOffset) { return getValue(sOffsetStack, sOffsetStackSize, iOffset); }
+void popOffset() { pop(sOffsetStackSize); }
 
-void pushOffset(uint64 iValue) { pushOffsetData(sOffsetStack, sOffsetStackSize, iValue); }
-uint64 getOffsetValue(uint16 iOffset) { return getOffsetValueData(sOffsetStack, sOffsetStackSize, iOffset); }
-void popOffset() { popOffsetData(sOffsetStackSize); }
+void pushCount(uint32 iValue) { push(sCountStack, sCountStackSize, iValue); }
+uint32 getCountValue(uint16 iOffset) { return getValue(sCountStack, sCountStackSize, iOffset); }
+void popCount() { pop(sCountStackSize); }
 
-void pushCount(uint32 iValue) { pushCountData(sCountStack, sCountStackSize, iValue); }
-uint32 getCountValue(uint16 iOffset) { return getCountValueData(sCountStack, sCountStackSize, iOffset); }
-void popCount() { popCountData(sCountStackSize); }
+void pushLoopIndex(uint32 iValue) { push(sLoopIndexStack, sLoopIndexStackSize, iValue); }
+uint32 getLoopIndexValue(uint16 iOffset) { return getValue(sLoopIndexStack, sLoopIndexStackSize, iOffset); }
+void popLoopIndex() { pop(sLoopIndexStackSize); }
 
-void pushLoopIndex(uint32 iValue) { pushData(sLoopIndexStack, sLoopIndexStackSize, iValue); }
-uint32 getLoopIndexValue(uint16 iOffset) { return getValueData(sLoopIndexStack, sLoopIndexStackSize, iOffset); }
-void popLoopIndex() { popData(sLoopIndexStackSize); }
-
-// Temporary variable
-local uint32 sTempLoopIndex<hidden=true>;
-
-
-// Macros - counts are 32-bit, offsets are 64-bit
+// 0x00 -- end
+// 0x01 -- array<struct>
+// 0x02 -- array<struct>*
 
 #define TSTRUCT_ARRAY_PTR_START \
-    pushCount(ReadUInt(FTell())); /* count is 32-bit */ \
-    FSkip(4); /* skip 4 bytes (uint32) */ \
-    pushOffset(FTell()); /* offset stack stores 64-bit */ \
-    pushOffset(ReadUInt64(FTell())); /* read 64-bit offset */ \
-    FSkip(8); /* skip 8 bytes (uint64) */ \
+    pushCount(ReadUInt(FTell())); \
+    FSkip(sizeof(uint32)); \
+    pushOffset(FTell()); \
+    pushOffset(ReadUInt(FTell())); \
+    FSkip(sizeof(uint32)); \
     if (getOffsetValue(0) != 0 && getCountValue(0) != 0) \
     { \
         FSeek(getOffsetValue(1) + getOffsetValue(0));
 
 #define TSTRUCT_ARRAY_PTR_END \
         [getCountValue(0)]; \
-        FSeek(getOffsetValue(1) + 8); /* after 64-bit pointer */ \
+        FSeek(getOffsetValue(1) + sizeof(uint32)); \
     } \
     popOffset(); \
     popOffset(); \
     popCount();
 
+// 0x03 -- array<struct*>*
+
+local uint32 sTempLoopIndex<hidden=true>;
 
 #define TSTRUCT_PTR_ARRAY_PTR_START \
     pushCount(ReadUInt(FTell())); \
-    FSkip(4); \
+    FSkip(sizeof(uint32)); \
     pushOffset(FTell()); \
-    pushOffset(ReadUInt64(FTell())); \
-    FSkip(8); \
+    pushOffset(ReadUInt(FTell())); \
+    FSkip(sizeof(uint32)); \
     if (getOffsetValue(0) != 0 && getCountValue(0) != 0) \
     { \
         FSeek(getOffsetValue(1) + getOffsetValue(0)); \
@@ -130,15 +90,15 @@ local uint32 sTempLoopIndex<hidden=true>;
         while (getLoopIndexValue(0) < getCountValue(0)) \
         { \
             pushOffset(FTell()); \
-            pushOffset(ReadUInt64(FTell())); \
-            FSkip(8); \
+            pushOffset(ReadUInt(FTell())); \
+            FSkip(sizeof(uint32)); \
             if (getOffsetValue(0) != 0) \
             { \
                 FSeek(getOffsetValue(1) + getOffsetValue(0));
 
 #define TSTRUCT_PTR_ARRAY_PTR_END \
                 ; \
-                FSeek(getOffsetValue(1) + 8); \
+                FSeek(getOffsetValue(1) + sizeof(uint32)); \
             } \
             popOffset(); \
             popOffset(); \
@@ -147,28 +107,28 @@ local uint32 sTempLoopIndex<hidden=true>;
             pushLoopIndex(sTempLoopIndex); \
         } \
         popLoopIndex(); \
-        FSeek(getOffsetValue(1) + 8); \
+        FSeek(getOffsetValue(1) + sizeof(uint32)); \
     } \
     popOffset(); \
     popOffset(); \
     popCount();
 
+// 0x10 -- struct*
 
 #define TPTR_START \
     pushOffset(FTell()); \
-    pushOffset(ReadUInt64(FTell())); \
-    FSkip(8); \
+    pushOffset(ReadUInt(FTell())); \
+    FSkip(sizeof(uint32)); \
     if (getOffsetValue(0) != 0) \
     { \
         FSeek(getOffsetValue(1) + getOffsetValue(0));
 
 #define TPTR_END \
         ; \
-        FSeek(getOffsetValue(1) + 8); \
+        FSeek(getOffsetValue(1) + sizeof(uint32)); \
     } \
     popOffset(); \
     popOffset();
-
 
 // 0x04 -- 
 // 0x05 -- byte
