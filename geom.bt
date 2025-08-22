@@ -1,0 +1,441 @@
+//------------------------------------------------
+//--- 010 Editor v15.0.1 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+
+LittleEndian();
+// Stack utlity in case of recursion of types like struct*, array<struct>* etc..
+#define STACK_SIZE 256
+// Stack utility for counts (uint32) and offsets (uint64)
+
+
+void pushData(uint32 ioStack[], uint32& ioStackSize, uint32 iValue)
+{
+    ioStack[ioStackSize] = iValue;
+    ++ioStackSize;
+}
+
+uint32 getValueData(uint32 ioStack[], uint32& ioStackSize, uint16 iOffset)
+{
+    return ioStack[ioStackSize - 1 - iOffset];
+}
+
+void popData(uint32& ioStackSize)
+{
+    --ioStackSize;
+}
+
+// For counts (32-bit)
+void pushCountData(uint32 ioStack[], uint32& ioStackSize, uint32 iValue)
+{
+    ioStack[ioStackSize] = iValue;
+    ++ioStackSize;
+}
+
+uint32 getCountValueData(uint32 ioStack[], uint32& ioStackSize, uint16 iOffset)
+{
+    return ioStack[ioStackSize - 1 - iOffset];
+}
+
+void popCountData(uint32& ioStackSize)
+{
+    --ioStackSize;
+}
+
+// For offsets (64-bit)
+void pushOffsetData(uint64 ioStack[], uint32& ioStackSize, uint64 iValue)
+{
+    ioStack[ioStackSize] = iValue;
+    ++ioStackSize;
+}
+
+uint64 getOffsetValueData(uint64 ioStack[], uint32& ioStackSize, uint16 iOffset)
+{
+    return ioStack[ioStackSize - 1 - iOffset];
+}
+
+void popOffsetData(uint32& ioStackSize)
+{
+    --ioStackSize;
+}
+
+// Global stacks
+
+local uint64 sOffsetStack[STACK_SIZE];
+local uint32 sOffsetStackSize = 0;
+
+local uint32 sCountStack[STACK_SIZE];
+local uint32 sCountStackSize = 0;
+
+local uint32 sLoopIndexStack[STACK_SIZE];
+local uint32 sLoopIndexStackSize = 0;
+
+// Wrapper functions
+
+void pushOffset(uint64 iValue) { pushOffsetData(sOffsetStack, sOffsetStackSize, iValue); }
+uint64 getOffsetValue(uint16 iOffset) { return getOffsetValueData(sOffsetStack, sOffsetStackSize, iOffset); }
+void popOffset() { popOffsetData(sOffsetStackSize); }
+
+void pushCount(uint32 iValue) { pushCountData(sCountStack, sCountStackSize, iValue); }
+uint32 getCountValue(uint16 iOffset) { return getCountValueData(sCountStack, sCountStackSize, iOffset); }
+void popCount() { popCountData(sCountStackSize); }
+
+void pushLoopIndex(uint32 iValue) { pushData(sLoopIndexStack, sLoopIndexStackSize, iValue); }
+uint32 getLoopIndexValue(uint16 iOffset) { return getValueData(sLoopIndexStack, sLoopIndexStackSize, iOffset); }
+void popLoopIndex() { popData(sLoopIndexStackSize); }
+
+// Temporary variable
+local uint32 sTempLoopIndex<hidden=true>;
+
+
+// Macros - counts are 32-bit, offsets are 64-bit
+
+#define TSTRUCT_ARRAY_PTR_START \
+    pushCount(ReadUInt(FTell())); /* count is 32-bit */ \
+    FSkip(4); /* skip 4 bytes (uint32) */ \
+    pushOffset(FTell()); /* offset stack stores 64-bit */ \
+    pushOffset(ReadUInt64(FTell())); /* read 64-bit offset */ \
+    FSkip(8); /* skip 8 bytes (uint64) */ \
+    if (getOffsetValue(0) != 0 && getCountValue(0) != 0) \
+    { \
+        FSeek(getOffsetValue(1) + getOffsetValue(0));
+
+#define TSTRUCT_ARRAY_PTR_END \
+        [getCountValue(0)]; \
+        FSeek(getOffsetValue(1) + 8); /* after 64-bit pointer */ \
+    } \
+    popOffset(); \
+    popOffset(); \
+    popCount();
+
+
+#define TSTRUCT_PTR_ARRAY_PTR_START \
+    pushCount(ReadUInt(FTell())); \
+    FSkip(4); \
+    pushOffset(FTell()); \
+    pushOffset(ReadUInt64(FTell())); \
+    FSkip(8); \
+    if (getOffsetValue(0) != 0 && getCountValue(0) != 0) \
+    { \
+        FSeek(getOffsetValue(1) + getOffsetValue(0)); \
+        pushLoopIndex(0); \
+        while (getLoopIndexValue(0) < getCountValue(0)) \
+        { \
+            pushOffset(FTell()); \
+            pushOffset(ReadUInt64(FTell())); \
+            FSkip(8); \
+            if (getOffsetValue(0) != 0) \
+            { \
+                FSeek(getOffsetValue(1) + getOffsetValue(0));
+
+#define TSTRUCT_PTR_ARRAY_PTR_END \
+                ; \
+                FSeek(getOffsetValue(1) + 8); \
+            } \
+            popOffset(); \
+            popOffset(); \
+            sTempLoopIndex = getLoopIndexValue(0) + 1; \
+            popLoopIndex(); \
+            pushLoopIndex(sTempLoopIndex); \
+        } \
+        popLoopIndex(); \
+        FSeek(getOffsetValue(1) + 8); \
+    } \
+    popOffset(); \
+    popOffset(); \
+    popCount();
+
+
+#define TPTR_START \
+    pushOffset(FTell()); \
+    pushOffset(ReadUInt64(FTell())); \
+    FSkip(8); \
+    if (getOffsetValue(0) != 0) \
+    { \
+        FSeek(getOffsetValue(1) + getOffsetValue(0));
+
+#define TPTR_END \
+        ; \
+        FSeek(getOffsetValue(1) + 8); \
+    } \
+    popOffset(); \
+    popOffset();
+
+
+// 0x04 -- 
+// 0x05 -- byte
+// 0x06 -- byte4
+
+typedef struct
+{
+    byte data[4];
+} byte4;
+
+// 0x07 -- double
+// 0x08 -- 
+// 0x09 -- 
+// 0x0A -- dword
+
+typedef int32 dword;
+
+// 0x0B -- filename
+
+struct filename;
+
+string readFilename(const filename& iFilename)
+{
+    if (exists(iFilename.data))
+    {
+        string result; 
+        SPrintf(result, "%d", 0xFF00 * (iFilename.data.highValue - 0x100) + (iFilename.data.lowValue - 0x100) + 1);
+        return result;
+    }
+    return "0";
+}
+
+typedef struct
+{
+    TPTR_START 
+    struct
+    {
+        uint16 lowValue;
+        uint16 highValue;
+        uint16 zero;
+    } data TPTR_END;
+} filename<read=readFilename, optimize=false>;
+
+// 0x0C -- float
+// 0x0D -- float2
+
+typedef struct
+{
+    float data[2];
+} float2;
+
+
+// 0x0E -- float3
+
+typedef struct
+{
+    float data[3];
+} float3;
+
+// 0x0F -- float4
+
+typedef struct
+{
+    float data[4];
+} float4;
+
+// 0x11 -- qword
+
+typedef int64 qword;
+
+// 0x12 -- wchar*
+
+struct wchar_ptr;
+
+wstring readWCharPtr(wchar_ptr& iWCharPtr)
+{
+    if (exists(iWCharPtr.data))
+    {
+        return iWCharPtr.data;
+    }
+    return "0";
+}
+
+typedef struct
+{
+    TPTR_START wstring data TPTR_END;
+} wchar_ptr<read=readWCharPtr, optimize=false>;
+
+// 0x13 -- char*
+
+struct char_ptr;
+
+wstring readCharPtr(char_ptr& iCharPtr)
+{
+    if (exists(iCharPtr.data))
+    {
+        return iCharPtr.data;
+    }
+    return "0";
+}
+
+typedef struct
+{
+    TPTR_START string data TPTR_END;
+} char_ptr<read=readCharPtr, optimize=false>;
+
+// 0x14 -- struct
+// 0x15 -- word
+
+typedef int16 word;
+
+// 0x16 -- byte16
+
+typedef struct
+{
+    byte data[16];
+} byte16;
+
+// 0x17 -- byte3
+
+typedef struct
+{
+    byte data[3];
+} byte3;
+
+// 0x18 -- dword2
+
+typedef struct
+{
+    dword data[2];
+} dword2;
+
+// 0x19 -- dword4
+
+typedef struct
+{
+    dword data[4];
+} dword4;
+
+// 0x1A -- word3
+
+typedef struct
+{
+    word data[3];
+} word3;
+
+// 0x1B -- fileref
+
+typedef int32 fileref;
+
+// 0x1C -- 
+// 0x1D -- struct
+
+
+/* ===============================================
+ * Chunk: GEOM, versions: 2, strucTab: 0x141F53A20
+ * ===============================================
+ */
+
+/* Version: 1, ReferencedFunction: 0x40D484C000000001 */
+typedef struct {
+    word index;
+    float3 vector;
+} ModelMeshMorphVertV66;
+
+typedef struct {
+    TSTRUCT_ARRAY_PTR_START ModelMeshMorphVertV66 positions TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelMeshMorphVertV66 normals TSTRUCT_ARRAY_PTR_END;
+    qword mesh;
+} ModelMeshMorphTargetV66;
+
+typedef struct {
+    float3 center;
+    float3 boxExtent;
+    float sphereRadius;
+} GrBoundData;
+
+typedef struct {
+    dword fvf;
+    TSTRUCT_ARRAY_PTR_START byte vertices TSTRUCT_ARRAY_PTR_END;
+} PackVertexType;
+
+typedef struct {
+    dword vertexCount;
+    PackVertexType mesh;
+} ModelMeshVertexDataV1;
+
+typedef struct {
+    TSTRUCT_ARRAY_PTR_START word indices TSTRUCT_ARRAY_PTR_END;
+} ModelMeshIndexDataV1;
+
+typedef struct {
+    ModelMeshVertexDataV1 verts;
+    ModelMeshIndexDataV1 indices;
+    TSTRUCT_ARRAY_PTR_START ModelMeshIndexDataV1 lods TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START dword transforms TSTRUCT_ARRAY_PTR_END;
+} ModelMeshGeometryV1;
+
+/*
+typedef struct {
+    qword visBone;
+    TSTRUCT_ARRAY_PTR_START ModelMeshMorphTargetV66 morphTargets TSTRUCT_ARRAY_PTR_END;
+    dword flags;
+    TSTRUCT_ARRAY_PTR_START dword seamVertIndices TSTRUCT_ARRAY_PTR_END;
+    qword meshName;
+    float3 minBound;
+    float3 maxBound;
+    TSTRUCT_ARRAY_PTR_START GrBoundData bounds TSTRUCT_ARRAY_PTR_END;
+    dword materialIndex;
+    char_ptr materialName;
+    TSTRUCT_ARRAY_PTR_START qword boneBindings TSTRUCT_ARRAY_PTR_END;
+    TPTR_START ModelMeshGeometryV1 geometry TPTR_END;
+} ModelMeshDataV66;
+*/
+
+typedef struct {
+    qword visBone;
+    TSTRUCT_ARRAY_PTR_START ModelMeshMorphTargetV66 morphTargets TSTRUCT_ARRAY_PTR_END;
+    dword flags;
+    TSTRUCT_ARRAY_PTR_START dword seamVertIndices TSTRUCT_ARRAY_PTR_END;
+    qword meshName;
+    float3 minBound;
+    float3 maxBound;
+    
+    // this is for ArrayPtrData
+    int32 countData;
+    int64 offsetData;
+    local uint32 position=FTell();
+    FSeek(position+offsetData-8);
+    GrBoundData bounds[countData]<optimize=false>;
+    FSeek(position);
+    
+    dword materialIndex;
+    char_ptr materialName;
+    
+    // this is for ArrayPtrData
+    int32 countData2;
+    int64 offsetData2;
+    local uint32 position2=FTell();
+    FSeek(position2+offsetData2-8);
+    qword boneBindings[countData2]<optimize=false>;
+    FSeek(position2);
+    
+    // this is for PtrData
+    int64 offsetData3;
+    local uint32 position3=FTell();
+    FSeek(position3+offsetData3-8);
+    ModelMeshGeometryV1 geometry;
+    FSeek(position3);
+} ModelMeshDataV66;
+
+/*
+typedef struct {
+    TSTRUCT_PTR_ARRAY_PTR_START ModelMeshDataV66 meshes TSTRUCT_PTR_ARRAY_PTR_END;
+} ModelFileGeometryV1;
+*/
+
+
+typedef struct {
+    // this is for PtrArrayPtrData
+    int32 countData;
+    int32 skipData;
+    FSkip(skipData-4);
+    int32 skipData2;
+    FSkip(skipData2-4);
+    ModelMeshDataV66 meshes[countData]<optimize=false>;
+} ModelFileGeometryV1;
+
+
+ModelFileGeometryV1 ModelFileGeometryV1_data;

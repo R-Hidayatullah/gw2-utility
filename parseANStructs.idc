@@ -101,7 +101,7 @@ static getSimpleTypeName(iAddress)
         return "byte4";
     else if (aTypeId == 0x07)
         return "double";
-    else if (aTypeId == 0x0A || aTypeId == 0x24)
+    else if (aTypeId == 0x0A || aTypeId == 0x24 || aTypeId == 0x1C)
         return "dword";
     else if (aTypeId == 0x0B)
         return "filename";
@@ -198,7 +198,7 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
         aTempOutput = form("%s %s", "Unknown0x09", aMemberName);
         aOptimized = 1;
     }
-    else if (aTypeId == 0x0A || aTypeId == 0x24)
+    else if (aTypeId == 0x0A || aTypeId == 0x24 || aTypeId == 0x1C)
     {
         aTempOutput = form("%s %s", "dword", aMemberName);
         aOptimized = 1;
@@ -288,11 +288,6 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     else if (aTypeId == 0x1B)
     {
         aTempOutput = form("%s %s", "fileref", aMemberName);
-        aOptimized = 1;
-    }
-    else if (aTypeId == 0x1C)
-    {
-        aTempOutput = form("%s %s", "Unknown0x1C", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x1D)

@@ -15,7 +15,6 @@ LittleEndian();
 #define STACK_SIZE 256
 // Stack utility for counts (uint32) and offsets (uint64)
 
-#define STACK_SIZE 256
 
 void pushData(uint32 ioStack[], uint32& ioStackSize, uint32 iValue)
 {
@@ -322,7 +321,7 @@ typedef int32 fileref;
 // 0x1C -- 
 // 0x1D -- struct
 
-struct
+typedef struct
 {
     char   magic[2];
     uint16 version;
@@ -360,6 +359,14 @@ struct ChunkData
    
 };
 
+
+
+
+
+/* ===============================================
+ * Chunk: GEOM, versions: 2, strucTab: 0x141F53A20
+ * ===============================================
+ */
 
 /* Version: 1, ReferencedFunction: 0x40D484C000000001 */
 typedef struct {
@@ -431,6 +438,7 @@ typedef struct {
     qword mesh;
 } ModelMeshMorphTargetV65;
 
+
 typedef struct {
     dword vertexCount;
     PackVertexType mesh;
@@ -465,6 +473,386 @@ typedef struct {
     TSTRUCT_PTR_ARRAY_PTR_START ModelMeshDataV65 meshes TSTRUCT_PTR_ARRAY_PTR_END;
 } ModelFileGeometryV0;
 
+
+/* Version: 69, ReferencedFunction: 0x40D4E5B000000001 */
+typedef struct {
+    filename filenameData;
+    dword textureFlags;
+    qword token;
+    qword blitId;
+    dword uvAnimId;
+    byte uvPSInputIndex;
+} ModelTextureDataV66;
+
+typedef struct {
+    dword name;
+    float4 value;
+    dword constantFlags;
+} ModelConstantDataV66;
+
+typedef struct {
+    qword linkToken;
+    dword constantToken;
+} ModelMatConstLinkV66;
+
+typedef struct {
+    qword linkToken;
+    dword uvAnimId;
+    byte type;
+} ModelUVTransLinkV66;
+
+typedef struct {
+    dword flags;
+    byte uvIndex;
+    byte columns;
+    byte rows;
+    word count;
+    float fps;
+    float2 scroll;
+    float2 scrollFreq;
+    float2 scale;
+    float2 scaleFreq;
+    float rotate;
+    float rotate;
+} ModelMaterialTexTransformV66;
+
+typedef struct {
+    qword token;
+    dword materialId;
+    filename filenameData;
+    dword materialFlags;
+    dword sortOrder;
+    TSTRUCT_ARRAY_PTR_START ModelTextureDataV66 textures TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelConstantDataV66 constants TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelMatConstLinkV66 matConstLinks TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelUVTransLinkV66 uvTransLinks TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelMaterialTexTransformV66 texTransforms TSTRUCT_ARRAY_PTR_END;
+    byte texCoordCount;
+    dword sortLayer;
+} ModelMaterialDataV66;
+
+typedef struct {
+    qword token;
+    TSTRUCT_PTR_ARRAY_PTR_START ModelMaterialDataV66 materials TSTRUCT_PTR_ARRAY_PTR_END;
+} ModelPermutationDataV66;
+
+typedef struct {
+    float3 acceleration;
+    qword bone;
+    float drag;
+    TSTRUCT_ARRAY_PTR_START dword emitterIndices TSTRUCT_ARRAY_PTR_END;
+    dword fvf;
+    dword flags;
+    dword materialIndex;
+    TSTRUCT_ARRAY_PTR_START dword obstacleIndices TSTRUCT_ARRAY_PTR_END;
+    float3 velocity;
+} ModelParticleCloudV66;
+
+typedef struct {
+    byte curveType;
+    TSTRUCT_ARRAY_PTR_START float2 keys TSTRUCT_ARRAY_PTR_END;
+} ModelParticleCurveV66;
+
+typedef struct {
+    float4 x;
+    float4 y;
+    float4 z;
+} ModelMatrix43V66;
+
+typedef struct {
+    byte columns;
+    byte count;
+    float fps;
+    byte rows;
+    byte start;
+} ModelParticleFlipbookV66;
+
+typedef struct {
+    float3 alignmentDir;
+    byte alignmentType;
+    TPTR_START ModelParticleFlipbookV66 flipbook TPTR_END;
+    float2 rotationChange;
+    float rotationDrag;
+    float2 rotationInitial;
+    float2 scaleChange[2];
+    float2 scaleInitial[2];
+    float4 texCoordRect;
+} PlaneEmitterSettingsV69;
+
+typedef struct {
+    dword alignment;
+    float bankThreshold;
+    float bankScale;
+    filename filenameData;
+    float obstacleRadius;
+    float2 rotation[3];
+    float2 scaleChange[3];
+    float2 scaleInitial[3];
+    float2 spin[3];
+} MeshEmitterSettingsV69;
+
+typedef struct {
+    float2 acceleration[4];
+    float2 accelerationDistRange;
+    float2 accelerationDistSpeed;
+    dword affinity;
+    qword bone;
+    float4 colorBegin;
+    float4 colorEnd;
+    float colorPeriod;
+    float2 colorFalloff;
+    dword emitterFlags;
+    float offset;
+    TPTR_START ModelParticleCurveV66 opacityCurve TPTR_END;
+    dword opacityCurvePreset;
+    dword flags;
+    float2 lifetime;
+    TPTR_START ModelParticleCurveV66 scaleCurve TPTR_END;
+    dword scaleCurvePreset;
+    float drag;
+    float2 velocity[4];
+    float2 velocityDistRange;
+    float2 velocityDistSpeed;
+    float2 velocityInherit;
+    float2 spawnGroupSize;
+    float spawnPeriod;
+    float spawnProbability;
+    float2 spawnRadius;
+    float2 spawnWindEmit;
+    float2 spawnWindSpeed;
+    TPTR_START ModelMatrix43V66 transform TPTR_END;
+    byte windInfluence;
+    byte spawnShape;
+    TPTR_START PlaneEmitterSettingsV69 planeEmitterSettings TPTR_END;
+    TPTR_START MeshEmitterSettingsV69 meshEmitterSettings TPTR_END;
+} ModelParticleEmitterV69;
+
+typedef struct {
+    TSTRUCT_ARRAY_PTR_START ModelParticleCloudV66 clouds TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelParticleEmitterV69 emitters TSTRUCT_ARRAY_PTR_END;
+} ModelCloudDataV69;
+
+typedef struct {
+    dword affinity;
+    qword bone;
+    byte type;
+    byte response;
+    dword flags;
+    float dragCoef;
+    float gravityCoef;
+    float length;
+    float width;
+    float height;
+    float radius;
+    TPTR_START ModelMatrix43V66 transform TPTR_END;
+} ModelObstacleDataV66;
+
+typedef struct {
+    float3 acceleration;
+    float3 velocity;
+    TSTRUCT_ARRAY_PTR_START dword anchorIndices TSTRUCT_ARRAY_PTR_END;
+    qword bone;
+    dword flags;
+    float jitter;
+    dword materialIndex;
+    float noise;
+    float spawnDist;
+    float texScale;
+    float wind;
+} ModelStreakV66;
+
+typedef struct {
+    qword bone;
+    dword colorStart;
+    dword colorEnd;
+    float falloff;
+    float lifetime;
+    dword flags;
+    float texV;
+} ModelStreakAnchorV66;
+
+typedef struct {
+    TSTRUCT_ARRAY_PTR_START ModelStreakV66 streaks TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelStreakAnchorV66 anchors TSTRUCT_ARRAY_PTR_END;
+} ModelStreakDataV66;
+
+typedef struct {
+    qword bone;
+    byte color[3];
+    float farDistance;
+    float intensity;
+    float nearDistance;
+} ModelEffectLightV66;
+
+typedef struct {
+    TSTRUCT_ARRAY_PTR_START ModelEffectLightV66 effectLights TSTRUCT_ARRAY_PTR_END;
+} ModelLightDataV66;
+
+
+typedef struct {
+    qword token;
+    byte weight;
+} ModelClothBoneWeightV66;
+
+typedef struct {
+    TSTRUCT_ARRAY_PTR_START ModelClothBoneWeightV66 weights TSTRUCT_ARRAY_PTR_END;
+} ModelClothMeshGroupV66;
+
+typedef struct {
+    qword strippedToken;
+    char_ptr boneName;
+    float3 OBBMin;
+    float3 OBBMax;
+} ModelClothGroupBindingV66;
+
+typedef struct {
+    byte weight;
+    word vertIndex;
+} ModelClothSoftLockV66;
+
+typedef struct {
+    word distance;
+    word relationship;
+    word vertIndexA;
+    word vertIndexB;
+} ModelClothConstraintV66;
+
+typedef struct {
+    dword materialIndex;
+    float drag;
+    float gravity;
+    float compressibility;
+    float slack;
+    float stretchiness;
+    float weight;
+    float wind;
+    PackVertexType mesh;
+    TSTRUCT_ARRAY_PTR_START word indices TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelClothMeshGroupV66 groups TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelClothGroupBindingV66 groupBindings TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelClothSoftLockV66 softLocks TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelClothConstraintV66 lod0Constraints TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelClothConstraintV66 lod1Constraints TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START word lod1Indices TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START float3 barycentricCoords TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START word barycentricIndices TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START dword obstacleIndices TSTRUCT_ARRAY_PTR_END;
+    word lockCount;
+    TSTRUCT_ARRAY_PTR_START dword lockedNormals TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START dword lockedTanegents TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START dword lockedBitangents TSTRUCT_ARRAY_PTR_END;
+    word lod1VertexCount;
+    byte flags;
+    byte rigidness;
+    float translateWeight;
+    qword visBone;
+} ModelClothDataV66;
+
+typedef struct {
+    qword bone;
+    float farDistance;
+    float intensity;
+    float nearDistance;
+} ModelEffectWindV66;
+
+typedef struct {
+    TSTRUCT_ARRAY_PTR_START ModelEffectWindV66 effectWind TSTRUCT_ARRAY_PTR_END;
+} ModelWindDataV66;
+
+typedef struct {
+    qword bone;
+    TSTRUCT_ARRAY_PTR_START word boltIndices TSTRUCT_ARRAY_PTR_END;
+    dword flags;
+    dword fvf;
+    dword materialIndex;
+} ModelLightningSystemV66;
+
+typedef struct {
+    qword bone;
+    TSTRUCT_ARRAY_PTR_START word nodeIndices TSTRUCT_ARRAY_PTR_END;
+    dword colorBegin[3];
+    dword colorEnd[3];
+    float colorPeriod;
+    float2 colorFalloff;
+    dword flags;
+    TPTR_START ModelParticleFlipbookV66 flipbook TPTR_END;
+    float fps;
+    float frequency;
+    dword groupMax;
+    dword groupMin;
+    float probability;
+    float2 lifetime;
+    word numSegments;
+    float2 opacity;
+    byte opacityPreset;
+    float texOffset;
+    float2 texRange;
+    float texScale;
+    float texSpeed;
+    byte thicknessPreset;
+    float2 thicknessRange;
+    byte type;
+    float variance;
+    byte variancePreset;
+    float noise;
+} ModelLightningBoltV66;
+
+typedef struct {
+    qword bone;
+    TSTRUCT_ARRAY_PTR_START word childrenIndices TSTRUCT_ARRAY_PTR_END;
+    dword flags;
+    float probability;
+    float2 radius;
+    byte shape;
+    float updatePos;
+} ModelLightningNodeV66;
+
+typedef struct {
+    TSTRUCT_ARRAY_PTR_START ModelLightningSystemV66 systems TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelLightningBoltV66 bolts TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelLightningNodeV66 nodes TSTRUCT_ARRAY_PTR_END;
+} ModelLightningDataV66;
+
+typedef struct {
+    dword materialIndex;
+    dword flags;
+    dword vertexFvf;
+    TSTRUCT_ARRAY_PTR_START byte vertBytes TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START word indices TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START qword bones TSTRUCT_ARRAY_PTR_END;
+} ModelSoftBodyDataV66;
+
+typedef struct {
+    qword bone;
+    float3 translation;
+    float4 rotation;
+    float4 boneInverseOffset[3];
+} ModelBoneOffsetDataV66;
+
+typedef struct {
+    float3 center;
+    float radius;
+} ModelBoundingSphereV66;
+
+typedef struct {
+    TSTRUCT_ARRAY_PTR_START ModelPermutationDataV66 permutations TSTRUCT_ARRAY_PTR_END;
+    TPTR_START ModelCloudDataV69 cloudData TPTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelObstacleDataV66 obstacles TSTRUCT_ARRAY_PTR_END;
+    TPTR_START ModelStreakDataV66 streakData TPTR_END;
+    TPTR_START ModelLightDataV66 lightData TPTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelClothDataV66 clothData TSTRUCT_ARRAY_PTR_END;
+    TPTR_START ModelWindDataV66 windData TPTR_END;
+    TSTRUCT_ARRAY_PTR_START qword actionOffsetNames TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START float3 actionOffsets TSTRUCT_ARRAY_PTR_END;
+    float lodOverride[2];
+    filename soundScript;
+    TPTR_START ModelLightningDataV66 lightningData TPTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelSoftBodyDataV66 softBodyData TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START ModelBoneOffsetDataV66 boneOffsetData TSTRUCT_ARRAY_PTR_END;
+    TPTR_START ModelBoundingSphereV66 boundingSphere TPTR_END;
+} ModelFileDataV69;
+
+
 struct ChunkData2
 {
     ChunkHeader chunkHeader;
@@ -472,28 +860,37 @@ struct ChunkData2
 
     if(chunkHeader.offsetToOffsetTable!=0)
     {
-        ModelFileGeometryV1 ModelFileGeometryV1_data;
+                  ModelFileDataV69 ModelFileDataV69_data;
         uint32 nbOfOffsets;
         nbOfOffsetsData=nbOfOffsets;
         uint32 offsets[nbOfOffsets]<optimize=false>;
         ubyte unknown[(chunkHeader.chunkSize - 8 - chunkHeader.offsetToOffsetTable - 4 - (nbOfOffsets * 4))]<optimize=false>;
 
     }else{
-        ModelFileGeometryV1 ModelFileGeometryV1_data;
+    ModelFileDataV69 ModelFileDataV69_data;
+        }
+   
+};
+
+
+struct ChunkData3
+{
+    ChunkHeader chunkHeader;
+    local uint32 nbOfOffsetsData=0;
+
+    if(chunkHeader.offsetToOffsetTable!=0)
+    {
+                  ModelFileGeometryV1 ModelFileGeometryV1_data;
+        uint32 nbOfOffsets;
+        nbOfOffsetsData=nbOfOffsets;
+        uint32 offsets[nbOfOffsets]<optimize=false>;
+        ubyte unknown[(chunkHeader.chunkSize - 8 - chunkHeader.offsetToOffsetTable - 4 - (nbOfOffsets * 4))]<optimize=false>;
+
+    }else{
+                  ModelFileGeometryV1 ModelFileGeometryV1_data;
     }
    
 };
 
 
-
-ChunkData chunkData;
-ChunkData chunkData2;
-ChunkData chunkData3;
-ChunkData chunkData4;
-ChunkData2 chunkData5;
-    
-
-//while(true){
-//    ChunkData ChunkData2_data;
-//}
-    
+                  ModelFileGeometryV1 ModelFileGeometryV1_data;

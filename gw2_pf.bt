@@ -486,14 +486,8 @@ struct ChunkData2
 
 
 
-ChunkData chunkData;
-ChunkData chunkData2;
-ChunkData chunkData3;
-ChunkData chunkData4;
-ChunkData2 chunkData5;
-    
 
-//while(true){
-//    ChunkData ChunkData2_data;
-//}
+while(true){
+    ChunkData ChunkData_data;
+}
     
