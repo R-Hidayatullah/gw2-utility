@@ -98,7 +98,7 @@ static getSimpleTypeName(iAddress)
     if (aTypeId == 0x05)
         return "uint8_t";
     else if (aTypeId == 0x06)
-        return "std::array<uint8_t, 4>";
+        return "FixedArrayData<uint8_t, 4>";
     else if (aTypeId == 0x07)
         return "double";
     else if (aTypeId == 0x0A || aTypeId == 0x24 || aTypeId == 0x1C)
@@ -108,11 +108,11 @@ static getSimpleTypeName(iAddress)
     else if (aTypeId == 0x0C)
         return "float";
     else if (aTypeId == 0x0D)
-        return "std::array<float, 2>";
+        return "FixedArrayData<float, 2>";
     else if (aTypeId == 0x0E)
-        return  "std::array<float, 3>";
+        return  "FixedArrayData<float, 3>";
     else if (aTypeId == 0x0F)
-        return "std::array<float, 4>";
+        return "FixedArrayData<float, 4>";
     else if (aTypeId == 0x11 || aTypeId == 0x25)
         return "uint64_t";
     else if (aTypeId == 0x12)
@@ -122,15 +122,15 @@ static getSimpleTypeName(iAddress)
     else if (aTypeId == 0x15)
         return "uint16_t";
     else if (aTypeId == 0x16)
-        return "std::array<uint8_t, 16>";
+        return "FixedArrayData<uint8_t, 16>";
     else if (aTypeId == 0x17)
-        return "std::array<uint8_t, 3>";
+        return "FixedArrayData<uint8_t, 3>";
     else if (aTypeId == 0x18)
-        return "std::array<uint32_t, 2>";
+        return "FixedArrayData<uint32_t, 2>";
     else if (aTypeId == 0x19)
-        return "std::array<uint32_t, 4>";
+        return "FixedArrayData<uint32_t, 4>";
     else if (aTypeId == 0x1A)
-        return "std::array<uint16_t, 3>";
+        return "FixedArrayData<uint16_t, 3>";
     else if (aTypeId == 0x1B)
         return "FileRefData";
     else
@@ -152,8 +152,8 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x01)
     {
-        //aTempOutput = form("std::array<%s, %d> %s", parseStruct(Dword(iAddress + 8), iParsedStructsId, iOutputFile),  Dword(iAddress + 12), aMemberName);
-        aTempOutput = form("std::array<%s, %d> %s", parseStruct(Qword(iAddress + 16), iParsedStructsId, iOutputFile),  Qword(iAddress + 24), aMemberName);
+        //aTempOutput = form("FixedArrayData<%s, %d> %s", parseStruct(Dword(iAddress + 8), iParsedStructsId, iOutputFile),  Dword(iAddress + 12), aMemberName);
+        aTempOutput = form("FixedArrayData<%s, %d> %s", parseStruct(Qword(iAddress + 16), iParsedStructsId, iOutputFile),  Qword(iAddress + 24), aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x02)
@@ -180,7 +180,7 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x06)
     {
-        aTempOutput = form("%s %s", "std::array<uint8_t, 4>", aMemberName);
+        aTempOutput = form("%s %s", "FixedArrayData<uint8_t, 4>", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x07)
@@ -215,17 +215,17 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x0D)
     {
-        aTempOutput = form("%s %s", "std::array<float, 2>", aMemberName);
+        aTempOutput = form("%s %s", "FixedArrayData<float, 2>", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x0E)
     {
-        aTempOutput = form("%s %s", "std::array<float, 3>", aMemberName);
+        aTempOutput = form("%s %s", "FixedArrayData<float, 3>", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x0F)
     {
-        aTempOutput = form("%s %s", "std::array<float, 4>", aMemberName);
+        aTempOutput = form("%s %s", "FixedArrayData<float, 4>", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x10)
@@ -262,27 +262,27 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x16)
     {
-        aTempOutput = form("%s %s", "std::array<uint8_t, 16>", aMemberName);
+        aTempOutput = form("%s %s", "FixedArrayData<uint8_t, 16>", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x17)
     {
-        aTempOutput = form("%s %s", "std::array<uint8_t, 3>", aMemberName);
+        aTempOutput = form("%s %s", "FixedArrayData<uint8_t, 3>", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x18)
     {
-        aTempOutput = form("%s %s", "std::array<uint32_t, 2>", aMemberName);
+        aTempOutput = form("%s %s", "FixedArrayData<uint32_t, 2>", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x19)
     {
-        aTempOutput = form("%s %s", "std::array<uint32_t, 4>", aMemberName);
+        aTempOutput = form("%s %s", "FixedArrayData<uint32_t, 4>", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x1A)
     {
-        aTempOutput = form("%s %s", "std::array<uint16_t, 3>", aMemberName);
+        aTempOutput = form("%s %s", "FixedArrayData<uint16_t, 3>", aMemberName);
         aOptimized = 1;
     }
     else if (aTypeId == 0x1B)
@@ -308,63 +308,6 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     return aTempOutput;
 }
 
-
-static getSimpleTypeNameLoad(iAddress,aMemberName)
-{
-    auto aTypeId;
-    aTypeId = Word(iAddress);
-    if (aTypeId == 0x02)
-        return aMemberName+"[i].load(r)";
-    else if (aTypeId == 0x03)
-        return aMemberName+"[i].load(r)";
-    else if (aTypeId == 0x05)
-        return aMemberName+"[i] = r.read<uint8_t>()";
-    else if (aTypeId == 0x06)
-        return "for(int i = 0; i < 4; ++i){\n"+aMemberName+"[i]= r.read<uint8_t>();\n}";
-    else if (aTypeId == 0x07)
-        return aMemberName+"[i] = r.read<double>()";
-    else if (aTypeId == 0x0A || aTypeId == 0x24 || aTypeId == 0x1C)
-        return aMemberName+"[i] = r.read<uint32_t>()";
-    else if (aTypeId == 0x0B)
-        return aMemberName+"[i].load(r)";
-    else if (aTypeId == 0x0C)
-        return aMemberName+"[i] = r.read<float>()";
-    else if (aTypeId == 0x0D)
-        return "for(int i = 0; i < 2; ++i){\n"+aMemberName+"[i]= r.read<float>();\n}";
-    else if (aTypeId == 0x0E)
-        return "for(int i = 0; i < 3; ++i){\n"+aMemberName+"[i]= r.read<float>();\n}";
-    else if (aTypeId == 0x0F)
-        return "for(int i = 0; i < 4; ++i){\n"+aMemberName+"[i]= r.read<float>();\n}";
-    else if (aTypeId == 0x10)
-        return aMemberName+"[i].load(r)";
-    else if (aTypeId == 0x11 || aTypeId == 0x25)
-        return aMemberName+"[i] = r.read<uint64_t>()";
-    else if (aTypeId == 0x12)
-        return aMemberName+"[i].load(r)";
-    else if (aTypeId == 0x13)
-        return aMemberName+"[i].load(r)";
-    else if (aTypeId == 0x14)
-        return aMemberName+"[i].load(r)";
-    else if (aTypeId == 0x15)
-        return aMemberName+"[i] = r.read<uint16_t>()";
-    else if (aTypeId == 0x16)
-        return "for(int i = 0; i < 16; ++i){\n"+aMemberName+"[i]= r.read<uint8_t>();\n}";
-    else if (aTypeId == 0x17)
-        return "for(int i = 0; i < 3; ++i){\n"+aMemberName+"[i]= r.read<uint8_t>();\n}";
-    else if (aTypeId == 0x18)
-        return "for(int i = 0; i < 2; ++i){\n"+aMemberName+"[i]= r.read<uint32_t>();\n}";
-    else if (aTypeId == 0x19)
-        return "for(int i = 0; i < 4; ++i){\n"+aMemberName+"[i]= r.read<uint32_t>();\n}";
-    else if (aTypeId == 0x1A)
-        return "for(int i = 0; i < 3; ++i){\n"+aMemberName+"[i]= r.read<uint16_t>();\n}";
-    else if (aTypeId == 0x1B)
-        return aMemberName+"[i].load(r)";
-    else if (aTypeId == 0x1D)
-        return aMemberName+"[i].load(r)";
-    else
-        return form("ERROR %d", aTypeId);
-}
-
 static parseMemberLoad(iAddress, iParsedStructsId, iOutputFile)
 {
     auto aTypeId, aMemberName, aOptimized, aTempOutput;
@@ -380,7 +323,7 @@ static parseMemberLoad(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x01)
     {
-        aTempOutput = form("for(int i = 0; i < %d; ++i){\n%s\n}", Qword(iAddress + 24), getSimpleTypeNameLoad(Qword(iAddress + 16), aMemberName) );
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
         aOptimized = 1;
     }
     else if (aTypeId == 0x02)
@@ -405,7 +348,7 @@ static parseMemberLoad(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x06)
     {
-        aTempOutput = form("for(int i = 0; i < 4; ++i){\n%s[i]= r.read<uint8_t>();\n}", aMemberName);
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
         aOptimized = 1;
     }
     else if (aTypeId == 0x07)
@@ -430,7 +373,7 @@ static parseMemberLoad(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x0B)
     {
-        aTempOutput = form("%s = r.read<%s>()", aMemberName, "FilenameData");
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
         aOptimized = 0;
     }
     else if (aTypeId == 0x0C)
@@ -440,18 +383,18 @@ static parseMemberLoad(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x0D)
     {
-        aTempOutput = form("for(int i = 0; i < 2; ++i){\n%s[i]= r.read<float>();\n}", aMemberName);
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
         aOptimized = 1;
     }
     else if (aTypeId == 0x0E)
     {
-        aTempOutput = form("for(int i = 0; i < 3; ++i){\n%s[i]= r.read<float>();\n}", aMemberName);
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
 
         aOptimized = 1;
     }
     else if (aTypeId == 0x0F)
     {
-        aTempOutput = form("for(int i = 0; i < 4; ++i){\n%s[i]= r.read<float>();\n}", aMemberName);
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
         aOptimized = 1;
     }
     else if (aTypeId == 0x10)
@@ -486,32 +429,32 @@ static parseMemberLoad(iAddress, iParsedStructsId, iOutputFile)
     }
     else if (aTypeId == 0x16)
     {
-        aTempOutput = form("for(int i = 0; i < 16; ++i){\n%s[i]= r.read<uint8_t>();\n}", aMemberName);
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
         aOptimized = 1;
     }
     else if (aTypeId == 0x17)
     {
-        aTempOutput = form("for(int i = 0; i < 3; ++i){\n%s[i]= r.read<uint8_t>();\n}", aMemberName);
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
         aOptimized = 1;
     }
     else if (aTypeId == 0x18)
     {
-        aTempOutput = form("for(int i = 0; i < 2; ++i){\n%s[i]= r.read<uint32_t>();\n}", aMemberName);
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
         aOptimized = 1;
     }
     else if (aTypeId == 0x19)
     {
-        aTempOutput = form("for(int i = 0; i < 4; ++i){\n%s[i]= r.read<uint32_t>();\n}", aMemberName);
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
         aOptimized = 1;
     }
     else if (aTypeId == 0x1A)
     {
-        aTempOutput = form("for(int i = 0; i < 3; ++i){\n%s[i]= r.read<uint16_t>();\n}", aMemberName);
+        aTempOutput = form("%s%s", aMemberName, ".load(r)");
         aOptimized = 1;
     }
     else if (aTypeId == 0x1B)
     {
-        aTempOutput = form("%s%s", aMemberName, ".load(r)");
+        aTempOutput = form("%s = r.read<%s>()", aMemberName, "FileRefData");
         aOptimized = 1;
     }
     else if (aTypeId == 0x1D)

@@ -323,67 +323,68 @@ typedef int32 fileref;
 // 0x1D -- struct
 
 
+
+
 /* ===============================================
- * Chunk: GEOM, versions: 2, strucTab: 0x141F53A20
+ * Chunk: BGFX, versions: 2, strucTab: 0x141DB0680
  * ===============================================
  */
 
-/* Version: 1, ReferencedFunction: 0x40D484C000000001 */
+/* Version: 1, ReferencedFunction: 0x40C0C84000000001 */
 typedef struct {
-    word index;
-    float3 vector;
-} ModelMeshMorphVertV66;
+    dword token;
+} AmatGfxShaderConstant;
 
 typedef struct {
-    TSTRUCT_ARRAY_PTR_START ModelMeshMorphVertV66 positions TSTRUCT_ARRAY_PTR_END;
-    TSTRUCT_ARRAY_PTR_START ModelMeshMorphVertV66 normals TSTRUCT_ARRAY_PTR_END;
-    qword mesh;
-} ModelMeshMorphTargetV66;
+    qword token;
+    dword stateIndex;
+    dword textureIndex;
+    dword textureSlot;
+} AmatGfxSamplerConstant;
 
 typedef struct {
-    float3 center;
-    float3 boxExtent;
-    float sphereRadius;
-} GrBoundData;
+    TSTRUCT_ARRAY_PTR_START byte data TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START AmatGfxShaderConstant constants TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START AmatGfxSamplerConstant samplers TSTRUCT_ARRAY_PTR_END;
+} AmatGfxShaderBinary;
 
 typedef struct {
-    dword fvf;
-    TSTRUCT_ARRAY_PTR_START byte vertices TSTRUCT_ARRAY_PTR_END;
-} PackVertexType;
+    dword isPixelShader;
+    AmatGfxShaderBinary dxShader;
+    AmatGfxShaderBinary osxShader;
+} AmatGfxShader;
 
 typedef struct {
-    dword vertexCount;
-    PackVertexType mesh;
-} ModelMeshVertexDataV1;
+    dword state;
+} AmatGfxSamplerState;
 
 typedef struct {
-    TSTRUCT_ARRAY_PTR_START word indices TSTRUCT_ARRAY_PTR_END;
-} ModelMeshIndexDataV1;
+    dword variant;
+    dword vertexShaderIndex;
+} AmatGfxVertexShaderVariant;
 
 typedef struct {
-    ModelMeshVertexDataV1 verts;
-    ModelMeshIndexDataV1 indices;
-    TSTRUCT_ARRAY_PTR_START ModelMeshIndexDataV1 lods TSTRUCT_ARRAY_PTR_END;
-    TSTRUCT_ARRAY_PTR_START dword transforms TSTRUCT_ARRAY_PTR_END;
-} ModelMeshGeometryV1;
+    qword token;
+    qword renderState;
+    dword shaderPassFlags;
+    dword pixelShaderIndex;
+    TSTRUCT_ARRAY_PTR_START AmatGfxVertexShaderVariant vertexShaderVariants TSTRUCT_ARRAY_PTR_END;
+} AmatGfxEffect;
 
 typedef struct {
-    qword visBone;
-    TSTRUCT_ARRAY_PTR_START ModelMeshMorphTargetV66 morphTargets TSTRUCT_ARRAY_PTR_END;
-    dword flags;
-    TSTRUCT_ARRAY_PTR_START dword seamVertIndices TSTRUCT_ARRAY_PTR_END;
-    qword meshName;
-    float3 minBound;
-    float3 maxBound;
-    TSTRUCT_ARRAY_PTR_START GrBoundData bounds TSTRUCT_ARRAY_PTR_END;
-    dword materialIndex;
-    char_ptr materialName;
-    TSTRUCT_ARRAY_PTR_START qword boneBindings TSTRUCT_ARRAY_PTR_END;
-    TPTR_START ModelMeshGeometryV1 geometry TPTR_END;
-} ModelMeshDataV66;
+    TSTRUCT_ARRAY_PTR_START AmatGfxEffect effects TSTRUCT_ARRAY_PTR_END;
+} AmatGfxPass;
 
 typedef struct {
-    TSTRUCT_PTR_ARRAY_PTR_START ModelMeshDataV66 meshes TSTRUCT_PTR_ARRAY_PTR_END;
-} ModelFileGeometryV1;
+    dword quality;
+    TSTRUCT_ARRAY_PTR_START AmatGfxPass passes TSTRUCT_ARRAY_PTR_END;
+} AmatGfxTechnique;
 
-ModelFileGeometryV1 ModelFileGeometryV1_data;
+typedef struct {
+    TSTRUCT_ARRAY_PTR_START AmatGfxShader shaders TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START AmatGfxSamplerState samplers TSTRUCT_ARRAY_PTR_END;
+    TSTRUCT_ARRAY_PTR_START AmatGfxTechnique techniques TSTRUCT_ARRAY_PTR_END;
+} AmatGfxMaterial;
+
+
+AmatGfxMaterial AmatGfxMaterial_data;

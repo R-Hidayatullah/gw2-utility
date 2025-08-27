@@ -1,0 +1,18 @@
+//------------------------------------------------
+//--- 010 Editor v15.0.1 Binary Template
+//
+//      File: 
+//   Authors: 
+//   Version: 
+//   Purpose: 
+//  Category: 
+// File Mask: 
+//  ID Bytes: 
+//   History: 
+//------------------------------------------------
+LittleEndian();
+
+uint32 countData;
+uint64 countPadding;
+uint8 padding[countPadding-8];
+uint64 offsetData[countData];
