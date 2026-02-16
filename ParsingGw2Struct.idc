@@ -115,11 +115,11 @@ static getSimpleTypeName(iAddress)
         return "float4";
     else if (aTypeId == 0x11)
         return "qword";
-    else if (aTypeId == 0x12)
+    else if (aTypeId == 0x12 || aTypeId == 0x24)
         return "helpers::WString";
     else if (aTypeId == 0x13)
         return "helpers::String";
-    else if (aTypeId == 0x15)
+    else if (aTypeId == 0x15 || aTypeId == 0x25)
         return "word";
     else if (aTypeId == 0x16)
         return "byte16";
@@ -239,7 +239,7 @@ static parseMember(aLoopIndex, iAddress, iParsedStructsId, iOutputFile)
         aTempOutput = form("%s %s", "qword", aMemberName);
         aOptimized = 1;
     }
-    else if (aTypeId == 0x12)
+    else if (aTypeId == 0x12 || aTypeId == 0x24)
     {
         aTempOutput = form("%s %s", "helpers::WString", aMemberName);
         aOptimized = 0;
@@ -255,7 +255,7 @@ static parseMember(aLoopIndex, iAddress, iParsedStructsId, iOutputFile)
         aTempOutput = form("%s %s", parseStruct(aLoopIndex, Qword(iAddress + 16), iParsedStructsId, iOutputFile), aMemberName);
         aOptimized = 1;
     }
-    else if (aTypeId == 0x15)
+    else if (aTypeId == 0x15 || aTypeId == 0x25)
     {
         aTempOutput = form("%s %s", "word", aMemberName);
         aOptimized = 1;
@@ -304,7 +304,7 @@ static parseMember(aLoopIndex, iAddress, iParsedStructsId, iOutputFile)
     else
     {
         aTempOutput = form("ERROR %s\n", aMemberName);
-        Message("ERROR: Encountered > 0x1D as a member typeId.");
+        Message("ERROR: Encountered > 0x1D as a member typeId. Type Id : %s | %d | 0x%X\n",aMemberName,aTypeId,aTypeId);
         aOptimized = 1;
     }
 
@@ -328,6 +328,7 @@ static parseStruct(aLoopIndex, iAddress, iParsedStructsId, iOutputFile)
     {
         return getSimpleTypeName(iAddress);
     }
+    aOutput = "";
 
     while (Word(aCurrentAddress) != 0)
     {
@@ -479,11 +480,8 @@ static main(void)
                             fprintf(aOutputFile, " * ===============================================\n");
                             fprintf(aOutputFile, " */\n\n");
                             fprintf(aOutputFile, "\ntemplate <uint16_t Version>\nstruct Gw2Struct%s;\n\n",aChunkName);
-                            if (aChunkName!="pD6B")
-                            {
                             parseStructTab(aChunkName, aANSTructTabOffset, aNbOfVersions, aOutputFile);
                             fprintf(aOutputFile, "\n");
-                            }
                         }
                     }
                 }
