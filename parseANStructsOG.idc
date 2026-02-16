@@ -316,7 +316,7 @@ static parseMember(iAddress, iParsedStructsId, iOutputFile)
     else
     {
         aTempOutput = form("%s %s", "ERROR", aMemberName);
-        Message("ERROR: Encountered 0x%X as a member typeId.\n", aTypeId);
+        Message("ERROR: Encountered 0x%X as a member typeId of %s.\n", aTypeId, aMemberName);
         aOptimized = 1;
     }
 
