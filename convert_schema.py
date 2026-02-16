@@ -20,8 +20,8 @@ def parse_txt_to_json(txt_file):
     member_re = re.compile(
         r"(TSTRUCT_ARRAY_PTR_START|TSTRUCT_PTR_ARRAY_PTR_START|TPTR_START)?\s*(\w+)\s+(\w+)(?:\s*\[.*\])?\s*(TSTRUCT_ARRAY_PTR_END|TSTRUCT_PTR_ARRAY_PTR_END|TPTR_END)?;"
     )
-    chunk_header_re = re.compile(r"\* Chunk: (\w+), versions: (\d+), strucTab: 0x[0-9A-Fa-f]+")
-    version_re = re.compile(r"/\* Version: (\d+)[^*]*\*/")
+    chunk_header_re = re.compile(r"\* Chunk: (\w+), versions: (\d+), strucTab: 0x([0-9A-Fa-f]+)")
+    version_re = re.compile(r"/\* Version: (\d+)(?:, ReferencedFunction: 0x([0-9A-Fa-f]+))? \*/")
 
     for line in lines:
         line = line.strip()
@@ -31,9 +31,10 @@ def parse_txt_to_json(txt_file):
         # Detect chunk
         chunk_match = chunk_header_re.search(line)
         if chunk_match:
-            chunk_name, nb_versions = chunk_match.groups()
+            chunk_name, nb_versions, struct_tab = chunk_match.groups()
             current_chunk = {
                 "name": chunk_name,
+                "structTab": int(struct_tab, 16),
                 "versions": []
             }
             schema["chunks"].append(current_chunk)
@@ -42,9 +43,10 @@ def parse_txt_to_json(txt_file):
         # Detect version
         version_match = version_re.search(line)
         if version_match:
-            version_id = int(version_match.group(1))
+            version_id, ref_func = version_match.groups()
             current_version = {
-                "version": version_id,
+                "version": int(version_id),
+                "referencedFunction": int(ref_func, 16) if ref_func else None,
                 "structs": []
             }
             current_chunk["versions"].append(current_version)
