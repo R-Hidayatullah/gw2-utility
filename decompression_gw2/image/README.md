@@ -24,6 +24,43 @@ Requires `numpy` and `Pillow`.
 | `gw2_atex.py`      | header parsing + the custom **inflate** (RLE constant passes, plane de-interleave, bit reader) |
 | `block_decoders.py`| block → RGBA8888 decoders: DXT1/2/3/4/5, DXTA, DXTL, DXTN, 3DCX, BC5, **BC7** |
 | `decode_atex.py`   | command-line front-end (writes PNGs) |
+| `gw2_atex.hpp`     | **C++20** single-header port (inflate + all block decoders) |
+| `gw2_atex.h`       | **C17** single-header port (stb-style, `GW2_ATEX_IMPLEMENTATION`) |
+| `test_cpp.cpp` / `test_c.c` | minimal example programs for the two headers |
+
+### C++20 header
+
+```cpp
+#include "gw2_atex.hpp"
+auto tex = gw2atex::parse(data, size);            // throws std::runtime_error
+gw2atex::Image img = gw2atex::decode(tex, 0);     // img.rgba = width*height*4, RGBA
+```
+
+### C17 header (single-header, stb-style)
+
+```c
+#define GW2_ATEX_IMPLEMENTATION      // in exactly ONE .c file
+#include "gw2_atex.h"
+
+gw2_atex_tex t;
+if (gw2_atex_parse(data, size, &t) == 0) {
+    int w, h;
+    uint8_t *rgba = gw2_atex_decode_mip(&t, 0, &w, &h);  // malloc'd w*h*4
+    /* ... */
+    free(rgba);
+    gw2_atex_free(&t);
+}
+```
+
+Build the examples:
+
+```
+g++ -std=c++20 -O2 test_cpp.cpp -o test_cpp
+gcc -std=c17   -O2 test_c.c   -o test_c -lm
+```
+
+Both headers are **byte-for-byte identical** to the reference Python decoder on
+all 18 sample files (every format, up to 2888×2888).
 
 ## The format
 
