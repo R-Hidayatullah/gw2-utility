@@ -64,13 +64,46 @@ Defaults (overridable via the `dat_path` tool argument or the
 | `gw2_info` | Archive header + MFT summary (version, size, entry counts). |
 | `gw2_list_entries` | Paginated MFT entries (offset/size/compression flag/CRC). |
 | `gw2_lookup` | Map between fileId ⇄ baseId ⇄ MFT index; suffix search. |
-| `gw2_sniff` | Decompress an entry and report only its type + size. |
+| `gw2_resolve` | Show how one id decodes as **both** baseId and fileId (disambiguate). |
+| `gw2_sniff` | Decompress an entry; report type + magic + PF containerType. |
 | `gw2_extract` | Decompress an entry and write the raw file bytes to disk. |
 | `gw2_decode_texture` | ATEX-family → RGBA **PNG** (Method0 + inflate + BCn/3DCX). |
 | `gw2_parse_packfile` | Packfile → structured field tree via the JSON template. |
+| `gw2_decode_strs` | 'strs' string-table → individual string records (text). |
 
-Selection is by `index` (MFT index) or `file_id` (resolved via the file-id
-table). Detected types: `packfile`, `texture`, `dds`, `png`, `jpeg`, `binary`.
+Selection is by `index`/`base_id` (the physical MFT index — same thing) or
+`file_id` (game logical id, resolved via the file-id table). Detected types:
+`packfile`, `texture`, `strs`, `dds`, `riff`, `png`, `jpeg`, `binary`; for a
+packfile, `containerType` gives the payload fourcc (MODL/AMAT/ASND/ABNK/...).
+
+### The two id namespaces (important)
+
+GW2 ids live in **two namespaces that collide**:
+
+- **baseId** — the physical MFT entry index. Used directly (`base_id`/`index`).
+- **fileId** — the game's logical id. Resolved via a table to a baseId.
+
+The *same number* is frequently valid as both and points to **different files**
+(e.g. `165505`: as baseId → an ATEX texture, as fileId → an ASND packfile). If a
+curated id doesn't produce the type you expect, call `gw2_resolve(id)` to see
+both readings and pick the right selector. Most hand-curated ids are baseIds, so
+prefer `base_id=` first.
+
+### STRS decode
+
+`gw2_decode_strs` returns per-record `mode`/`confirmed`/`text`:
+
+- **`raw-utf16` / `confirmed: true`** — byte-exact real game text (verified
+  against Spanish/Chinese samples).
+- **`packed` / `confirmed: false`** — **structural only**. These records are
+  RC4-locked: the keystream comes from runtime cross-reference state that isn't
+  present in a standalone entry, so `text` is *not* the real string (framing and
+  header fields are still correct). Finishing this needs the RC4 key — see
+  `../strs_decode.py`'s docstring. Use `only_confirmed=true` to get just the
+  real strings, or `contains="..."` to search them.
+
+Confirmed STRS sample baseIds (from the curated list, verified `strs` magic):
+`2925, 2930, 632438, 635540` (plus `2878, 2924, 3558, 156894`).
 
 ## CLI (usable standalone)
 
@@ -80,6 +113,7 @@ table). Detected types: `packfile`, `texture`, `dds`, `png`, `jpeg`, `binary`.
 gw2dat_cli info    --dat <Gw2.dat>
 gw2dat_cli list    --dat <Gw2.dat> --offset 0 --limit 100
 gw2dat_cli lookup  --dat <Gw2.dat> --file-id 123456
+gw2dat_cli resolve --dat <Gw2.dat> --id 165505        # both baseId & fileId readings
 gw2dat_cli sniff   --dat <Gw2.dat> --index 100000
 gw2dat_cli extract --dat <Gw2.dat> --index 100000 --out file.bin
 gw2dat_cli texture --dat <Gw2.dat> --index 100000 --out tex.png [--mip 0]
@@ -91,7 +125,11 @@ gw2dat_cli parse   --data file.bin --template templates\gw2_packfile.json
 
 - Only decompression **Method0** (Huffman+LZ77) is implemented — the delta/patch
   Method1 is not, matching the source RE work.
-- The texture path decodes the **ATEX family** (ATEX/ATTX/ATEC/ATEP/ATEU/ATET).
-  Standalone `DDS `/PNG/JPEG entries are extracted as-is by `gw2_extract` (the
-  GUI's WIC/D3D preview path is intentionally not part of the headless build).
+- The texture path decodes the **ATEX family** (ATEX/ATTX/ATEC/ATEP/ATEU/ATET)
+  **and the CTEX/CTTX/CTEC/CTEP/CTEU/CTET siblings**. The C-variants have a
+  byte-identical container (same fourcc + width/height + mip records) and differ
+  only in the 4-byte magic, so the CLI aliases `C*`→`A*` before decoding and
+  reports the original magic as `aliasedFrom`. Verified visually: real CTEX item
+  icons decode correctly. Standalone `DDS `/PNG/JPEG entries are extracted as-is
+  by `gw2_extract` (the GUI's WIC/D3D preview path is not in the headless build).
 - Rebuild `gw2dat_cli.exe` if you change anything under `native/`.

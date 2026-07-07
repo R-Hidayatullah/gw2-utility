@@ -96,11 +96,14 @@ std::vector<uint8_t> read_file(const std::string& path) {
 //  DAT helpers
 // ---------------------------------------------------------------------------
 
-// Resolve --index / --file-id (in `a`) to a concrete MFT index in `dat`.
+// Resolve --index / --base-id / --file-id (in `a`) to a concrete MFT index.
+// NOTE: in this archive model the "baseId" stored in the file-id table *is*
+// the physical MFT entry index, so --index and --base-id are the same thing;
+// --file-id is the game's logical id and must be looked up first.
 uint32_t resolve_index(Gw2Dat& dat, const Args& a) {
-    if (has(a, "index")) {
-        uint64_t idx = to_u64(a.at("index"));
-        if (idx >= dat.mft_data_list.size()) fail("index out of range");
+    if (has(a, "index") || has(a, "base-id")) {
+        uint64_t idx = to_u64(has(a, "index") ? a.at("index") : a.at("base-id"));
+        if (idx >= dat.mft_data_list.size()) fail("index/base-id out of range");
         return static_cast<uint32_t>(idx);
     }
     if (has(a, "file-id")) {
@@ -120,7 +123,7 @@ std::vector<uint8_t> decompress_entry(const std::vector<uint8_t>& raw, uint16_t 
     if (compression_flag == 0) {
         return stripped;
     }
-    if (stripped.size() < 8) fail("entry too small to contain a Method0 header");
+    if (stripped.size() < 8) throw std::runtime_error("entry too small to contain a Method0 header");
     uint32_t uncompressed_size = static_cast<uint32_t>(stripped[4]) |
                                  (static_cast<uint32_t>(stripped[5]) << 8) |
                                  (static_cast<uint32_t>(stripped[6]) << 16) |
@@ -128,14 +131,69 @@ std::vector<uint8_t> decompress_entry(const std::vector<uint8_t>& raw, uint16_t 
     return gw2cmp::decompress_method0(std::span<const uint8_t>(stripped).subspan(8), uncompressed_size);
 }
 
+// The ATEX-family texture magics gw2atex understands, plus the "C" siblings
+// (CTEX/CTTX/CTEC/CTEP/CTEU/CTET) which share the exact same on-disk layout --
+// same fourcc + width/height + mip records -- and differ only in this tag.
+// alias_texture_magic() below rewrites C->A so the same decoder handles both.
+bool is_texture_magic(const std::vector<uint8_t>& d) {
+    if (d.size() < 4) return false;
+    static const char* MAG[] = {"ATEX", "ATTX", "ATEC", "ATEP", "ATEU", "ATET",
+                                "CTEX", "CTTX", "CTEC", "CTEP", "CTEU", "CTET"};
+    for (auto* m : MAG)
+        if (std::memcmp(d.data(), m, 4) == 0) return true;
+    return false;
+}
+
+// If `d` starts with a "C" texture magic, flip byte 0 to 'A' in place so
+// gw2atex::parse (which whitelists only the A-family) accepts it. Returns the
+// original 4-byte magic, or "" if nothing was changed.
+std::string alias_texture_magic(std::vector<uint8_t>& d) {
+    if (d.size() >= 4 && d[0] == 'C') {
+        static const char* CVAR[] = {"CTEX", "CTTX", "CTEC", "CTEP", "CTEU", "CTET"};
+        for (auto* m : CVAR) {
+            if (std::memcmp(d.data(), m, 4) == 0) {
+                std::string orig(reinterpret_cast<char*>(d.data()), 4);
+                d[0] = 'A';
+                return orig;
+            }
+        }
+    }
+    return "";
+}
+
 const char* sniff_type(const std::vector<uint8_t>& d) {
     auto m4 = [&](const char* s) { return d.size() >= 4 && std::memcmp(d.data(), s, 4) == 0; };
     if (d.size() >= 2 && d[0] == 'P' && d[1] == 'F') return "packfile";
-    if (m4("ATEX") || m4("ATTX") || m4("ATEC") || m4("ATEP") || m4("ATEU") || m4("ATET")) return "texture";
+    if (is_texture_magic(d)) return "texture";
+    if (m4("strs")) return "strs";
     if (m4("DDS ")) return "dds";
+    if (m4("RIFF")) return "riff";
     if (d.size() >= 4 && d[0] == 0x89 && d[1] == 'P' && d[2] == 'N' && d[3] == 'G') return "png";
     if (d.size() >= 3 && d[0] == 0xFF && d[1] == 0xD8 && d[2] == 0xFF) return "jpeg";
     return "binary";
+}
+
+// Printable 4-byte tag at `pos` (non-printable -> '.'), or "" if out of range.
+std::string tag_at(const std::vector<uint8_t>& d, size_t pos) {
+    if (d.size() < pos + 4) return "";
+    std::string s;
+    for (size_t i = pos; i < pos + 4; ++i) {
+        uint8_t c = d[i];
+        s += (c >= 0x20 && c < 0x7F) ? static_cast<char>(c) : '.';
+    }
+    return s;
+}
+
+// Compact description of decompressed bytes: 4-byte magic, detected type, and
+// (for a PF container) the fourcc at offset 8 that names the real payload
+// (MODL/AMAT/ASND/ABNK/...).
+json describe(const std::vector<uint8_t>& d) {
+    json j;
+    j["magic"] = tag_at(d, 0);
+    j["type"] = sniff_type(d);
+    j["size"] = d.size();
+    if (d.size() >= 2 && d[0] == 'P' && d[1] == 'F') j["containerType"] = tag_at(d, 8);
+    return j;
 }
 
 // ParsedNode tree -> JSON (depth-capped so huge packfiles stay printable).
@@ -234,6 +292,59 @@ void cmd_lookup(const Args& a) {
     emit(j);
 }
 
+// Extract + decompress by explicit MFT index; returns describe() or an error
+// object (never throws) -- used by `resolve` to probe both interpretations.
+json probe_index(Gw2Dat& dat, uint64_t idx) {
+    json j;
+    if (idx >= dat.mft_data_list.size()) {
+        j["valid"] = false;
+        j["error"] = "index out of range";
+        return j;
+    }
+    try {
+        const MftData& e = dat.mft_data_list[idx];
+        std::vector<uint8_t> raw = read_entry_bytes(dat.file_info.file_path, e);
+        std::vector<uint8_t> data = decompress_entry(raw, e.compression_flag);
+        j = describe(data);
+        j["valid"] = true;
+        j["mftIndex"] = idx;
+        j["compressionFlag"] = e.compression_flag;
+    } catch (const std::exception& ex) {
+        j["valid"] = false;
+        j["mftIndex"] = idx;
+        j["error"] = ex.what();
+    }
+    return j;
+}
+
+// resolve: show how one number decodes under *both* id namespaces, so a
+// curated id of unknown kind (fileId vs baseId/index) can be disambiguated.
+void cmd_resolve(const Args& a) {
+    Gw2Dat dat;
+    load_dat_file(dat, need(a, "dat"));
+    uint64_t id = to_u64(need(a, "id"));
+    json j;
+    j["ok"] = true;
+    j["id"] = id;
+
+    // (1) as a baseId / direct MFT index
+    j["asBaseId"] = probe_index(dat, id);
+
+    // (2) as a game fileId -> look up its baseId, then probe that
+    json as_file;
+    uint32_t base = get_by_base_id(dat, static_cast<uint32_t>(id)); // fileId -> baseId
+    if (base == 0) {
+        as_file["found"] = false;
+    } else {
+        as_file = probe_index(dat, base);
+        as_file["found"] = true;
+        as_file["fileId"] = id;
+        as_file["baseId"] = base;
+    }
+    j["asFileId"] = as_file;
+    emit(j);
+}
+
 // Extract + decompress one entry, returning the decompressed file bytes.
 std::vector<uint8_t> extract_bytes(Gw2Dat& dat, const Args& a, uint32_t& idx_out) {
     uint32_t idx = resolve_index(dat, a);
@@ -266,21 +377,34 @@ void cmd_sniff(const Args& a) {
     load_dat_file(dat, need(a, "dat"));
     uint32_t idx = 0;
     std::vector<uint8_t> data = extract_bytes(dat, a, idx);
-    json j;
+    json j = describe(data);
     j["ok"] = true;
     j["index"] = idx;
     j["decompressedSize"] = data.size();
-    j["type"] = sniff_type(data);
     emit(j);
 }
 
 void cmd_texture(const Args& a) {
-    Gw2Dat dat;
-    load_dat_file(dat, need(a, "dat"));
     std::string out = need(a, "out");
     int mip = has(a, "mip") ? static_cast<int>(to_u64(a.at("mip"))) : 0;
-    uint32_t idx = 0;
-    std::vector<uint8_t> data = extract_bytes(dat, a, idx);
+    int idx = -1;
+
+    // Source: raw decompressed file (--data) or a DAT entry.
+    std::vector<uint8_t> data;
+    if (has(a, "data")) {
+        data = read_file(a.at("data"));
+    } else {
+        Gw2Dat dat;
+        load_dat_file(dat, need(a, "dat"));
+        uint32_t i = 0;
+        data = extract_bytes(dat, a, i);
+        idx = static_cast<int>(i);
+    }
+
+    // Accept the CTEX/CTEU/... siblings by aliasing their magic to the A-family
+    // the decoder whitelists; the rest of the container is identical.
+    std::string aliased = alias_texture_magic(data);
+
     try {
         gw2atex::Texture tex = gw2atex::parse(data.data(), data.size());
         gw2atex::Image img = gw2atex::decode(tex, mip);
@@ -289,11 +413,13 @@ void cmd_texture(const Args& a) {
             fail("failed to write PNG: " + out);
         json j;
         j["ok"] = true;
-        j["index"] = idx;
+        if (idx >= 0) j["index"] = idx;
         j["out"] = out;
         j["width"] = img.width;
         j["height"] = img.height;
         j["format"] = tex.fmt_name;
+        j["magic"] = aliased.empty() ? std::string(tex.magic, 4) : aliased;
+        if (!aliased.empty()) j["aliasedFrom"] = aliased; // original C-family magic
         j["mip"] = mip;
         j["mipCount"] = tex.mips.size();
         emit(j);
@@ -364,7 +490,7 @@ void cmd_parse(const Args& a) {
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        fail("usage: gw2dat_cli <info|list|lookup|extract|texture|parse|sniff> [--flags]");
+        fail("usage: gw2dat_cli <info|list|lookup|resolve|extract|texture|parse|sniff> [--flags]");
     }
     std::string cmd = argv[1];
     Args a = parse_args(argc, argv, 2);
@@ -376,6 +502,7 @@ int main(int argc, char** argv) {
         else if (cmd == "texture") cmd_texture(a);
         else if (cmd == "parse") cmd_parse(a);
         else if (cmd == "sniff") cmd_sniff(a);
+        else if (cmd == "resolve") cmd_resolve(a);
         else fail("unknown command: " + cmd);
     } catch (const std::exception& ex) {
         fail(ex.what());

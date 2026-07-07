@@ -19,10 +19,13 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
+
+from strs import parse_strs
 
 # --------------------------------------------------------------------------- #
 #  Paths & defaults
@@ -86,13 +89,21 @@ def _run(args: list[str]) -> dict[str, Any]:
         return {"ok": False, "error": f"could not parse CLI output as JSON: {out[:500]}"}
 
 
-def _target_flags(index: Optional[int], file_id: Optional[int]) -> list[str]:
-    """Turn an index/file_id selector into CLI flags (exactly one required)."""
+def _target_flags(
+    index: Optional[int], file_id: Optional[int], base_id: Optional[int] = None
+) -> list[str]:
+    """Turn an index/base_id/file_id selector into CLI flags (exactly one).
+
+    `index` and `base_id` are the same physical MFT index (see resolve/README);
+    `file_id` is the game's logical id, resolved via the file-id table.
+    """
     if index is not None:
         return ["--index", str(index)]
+    if base_id is not None:
+        return ["--base-id", str(base_id)]
     if file_id is not None:
         return ["--file-id", str(file_id)]
-    raise ValueError("provide either `index` or `file_id`")
+    raise ValueError("provide one of `index` / `base_id` / `file_id`")
 
 
 def _dat(dat_path: Optional[str], local: bool) -> str:
@@ -163,19 +174,36 @@ def gw2_lookup(
 def gw2_sniff(
     index: Optional[int] = None,
     file_id: Optional[int] = None,
+    base_id: Optional[int] = None,
     dat_path: Optional[str] = None,
     local: bool = False,
 ) -> dict[str, Any]:
-    """Extract + decompress an entry and report its detected type/size only.
+    """Extract + decompress an entry and report its type/magic/size only.
 
-    Type is one of: packfile, texture, dds, png, jpeg, binary. Cheap way to
-    decide whether to call gw2_decode_texture vs gw2_parse_packfile next.
+    Returns `type` (packfile/texture/strs/dds/riff/png/jpeg/binary), the 4-byte
+    `magic`, and for a packfile the `containerType` fourcc (MODL/AMAT/ASND/...).
+    Cheap way to decide which decoder tool to call next.
     """
     try:
-        target = _target_flags(index, file_id)
+        target = _target_flags(index, file_id, base_id)
     except ValueError as e:
         return {"ok": False, "error": str(e)}
     return _run(["sniff", "--dat", _dat(dat_path, local), *target])
+
+
+@mcp.tool()
+def gw2_resolve(id: int, dat_path: Optional[str] = None, local: bool = False) -> dict[str, Any]:
+    """Disambiguate a raw id by showing how it decodes under BOTH id namespaces.
+
+    GW2 ids live in two namespaces that can collide: `baseId` (== physical MFT
+    index, used directly) and `fileId` (game logical id, resolved via a table).
+    The same number is often valid as both but points to different files. This
+    returns `asBaseId` and `asFileId`, each with the resulting magic/type (and
+    containerType for packfiles), so you can tell which reading a curated id
+    was meant to be. Use it whenever a filetype label doesn't match what a tool
+    returns.
+    """
+    return _run(["resolve", "--dat", _dat(dat_path, local), "--id", str(id)])
 
 
 @mcp.tool()
@@ -183,6 +211,7 @@ def gw2_extract(
     out_path: str,
     index: Optional[int] = None,
     file_id: Optional[int] = None,
+    base_id: Optional[int] = None,
     dat_path: Optional[str] = None,
     local: bool = False,
 ) -> dict[str, Any]:
@@ -192,7 +221,7 @@ def gw2_extract(
     depending on the entry. Returns bytesWritten and the sniffed type.
     """
     try:
-        target = _target_flags(index, file_id)
+        target = _target_flags(index, file_id, base_id)
     except ValueError as e:
         return {"ok": False, "error": str(e)}
     return _run(["extract", "--dat", _dat(dat_path, local), *target, "--out", out_path])
@@ -203,6 +232,7 @@ def gw2_decode_texture(
     out_path: str,
     index: Optional[int] = None,
     file_id: Optional[int] = None,
+    base_id: Optional[int] = None,
     mip: int = 0,
     dat_path: Optional[str] = None,
     local: bool = False,
@@ -214,7 +244,7 @@ def gw2_decode_texture(
     DXT5, BC7, 3DCX), and mip count. `mip` selects the mip level.
     """
     try:
-        target = _target_flags(index, file_id)
+        target = _target_flags(index, file_id, base_id)
     except ValueError as e:
         return {"ok": False, "error": str(e)}
     return _run(
@@ -226,6 +256,7 @@ def gw2_decode_texture(
 def gw2_parse_packfile(
     index: Optional[int] = None,
     file_id: Optional[int] = None,
+    base_id: Optional[int] = None,
     data_path: Optional[str] = None,
     template_path: Optional[str] = None,
     max_depth: int = 6,
@@ -235,7 +266,7 @@ def gw2_parse_packfile(
 ) -> dict[str, Any]:
     """Parse a GW2 packfile (PF) into a structured field tree via the template.
 
-    Source is either an entry in the DAT (`index`/`file_id`) or a raw
+    Source is either an entry in the DAT (`index`/`base_id`/`file_id`) or a raw
     decompressed file on disk (`data_path`). Follows ArenaNet self-relative
     pointers per the registry in templates/gw2_packfile.json. `max_depth` caps
     the returned tree; pass `out_path` to dump the full tree to a file and get
@@ -247,13 +278,87 @@ def gw2_parse_packfile(
         args += ["--data", data_path]
     else:
         try:
-            target = _target_flags(index, file_id)
+            target = _target_flags(index, file_id, base_id)
         except ValueError as e:
             return {"ok": False, "error": str(e)}
         args += ["--dat", _dat(dat_path, local), *target]
     if out_path:
         args += ["--out", out_path]
     return _run(args)
+
+
+@mcp.tool()
+def gw2_decode_strs(
+    index: Optional[int] = None,
+    file_id: Optional[int] = None,
+    base_id: Optional[int] = None,
+    data_path: Optional[str] = None,
+    limit: int = 200,
+    offset: int = 0,
+    only_confirmed: bool = False,
+    contains: Optional[str] = None,
+    dat_path: Optional[str] = None,
+    local: bool = False,
+) -> dict[str, Any]:
+    """Decode a GW2 'strs' string-table entry into individual string records.
+
+    Pipeline: the native CLI Method0-decompresses the entry, then this decodes
+    the 'strs' container. Each record has: offset, length, baseChar, rangeBits,
+    mode, `confirmed`, and `text`.
+
+    - `mode=raw-utf16` / `confirmed=true`: the text is byte-exact real game text.
+    - `mode=packed` / `confirmed=false`: STRUCTURAL ONLY. These records are
+      RC4-locked (the keystream comes from runtime cross-reference state absent
+      from a standalone entry), so `text` is NOT the real string. Framing and
+      the header fields are still correct.
+
+    Source is a DAT entry (`index`/`base_id`/`file_id`; most curated STRS ids are
+    baseIds -> use `base_id`) or a raw decompressed file (`data_path`). Filter
+    with `only_confirmed`, a `contains` substring (matched on confirmed text),
+    and paginate with `offset`/`limit`. Counts in the summary reflect the whole
+    table; the returned `records` are the filtered page.
+    """
+    # Get decompressed bytes: either straight from disk, or via the CLI.
+    if data_path:
+        try:
+            data = Path(data_path).read_bytes()
+        except OSError as e:
+            return {"ok": False, "error": f"cannot read data_path: {e}"}
+    else:
+        try:
+            target = _target_flags(index, file_id, base_id)
+        except ValueError as e:
+            return {"ok": False, "error": str(e)}
+        tmp = Path(tempfile.gettempdir()) / f"gw2strs_{os.getpid()}.bin"
+        try:
+            res = _run(["extract", "--dat", _dat(dat_path, local), *target, "--out", str(tmp)])
+            if not res.get("ok"):
+                return res
+            if res.get("type") != "strs":
+                return {
+                    "ok": False,
+                    "error": f"entry is '{res.get('type')}', not strs. If you passed a fileId that "
+                    f"resolved wrong, try base_id, or call gw2_resolve({index or base_id or file_id}).",
+                    "sniff": res,
+                }
+            data = tmp.read_bytes()
+        finally:
+            tmp.unlink(missing_ok=True)
+
+    parsed = parse_strs(data)
+    if not parsed.get("ok"):
+        return parsed
+
+    records = parsed["records"]
+    if only_confirmed:
+        records = [r for r in records if r["confirmed"]]
+    if contains:
+        records = [r for r in records if r["confirmed"] and contains in r["text"]]
+
+    parsed["filteredCount"] = len(records)
+    parsed["offset"] = offset
+    parsed["records"] = records[offset : offset + limit]
+    return parsed
 
 
 # --------------------------------------------------------------------------- #
