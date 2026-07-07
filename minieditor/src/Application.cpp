@@ -211,36 +211,51 @@ void Application::drawGw2Panel() {
         ImGui::TableSetupColumn("struct");
         ImGui::TableSetupColumn("strucTab (pick)");
         ImGui::TableHeadersRow();
-        for (int i = 0; i < (int)m_pfChunks.size(); ++i) {
-            auto& r = m_pfChunks[i];
-            ImGui::TableNextRow();
-            ImGui::PushID(i);
-            ImGui::TableSetColumnIndex(0);
-            bool sel = (i == m_chunkSelected);
-            if (ImGui::Selectable(r.fourcc.c_str(), sel, ImGuiSelectableFlags_SpanAllColumns)) {
-                m_chunkSelected = i; updateSchemaPreview();
-            }
-            ImGui::TableSetColumnIndex(1); ImGui::Text("%d", r.version);
-            ImGui::TableSetColumnIndex(2); ImGui::Text("%zu", r.offset);
-            ImGui::TableSetColumnIndex(3); ImGui::Text("%zu", r.size);
-            ImGui::TableSetColumnIndex(4);
-            if (r.type.empty()) ImGui::TextDisabled("(no schema)");
-            else ImGui::TextUnformatted(r.type.c_str());
-            ImGui::TableSetColumnIndex(5);
-            if (r.tabLabels.size() > 1) {
-                std::vector<const char*> its; its.reserve(r.tabLabels.size());
-                for (auto& s : r.tabLabels) its.push_back(s.c_str());
-                ImGui::SetNextItemWidth(-1);
-                if (ImGui::Combo("##tab", &r.tabChoice, its.data(), (int)its.size())) {
-                    r.type = (r.tabChoice < (int)r.tabTypes.size()) ? r.tabTypes[r.tabChoice] : std::string();
-                    if (i == m_chunkSelected) updateSchemaPreview();
+
+        // Clipper so huge chunk lists (thousands of chunks) don't build/draw
+        // every row every frame -- mirrors HexViewer's approach.
+        ImGuiListClipper clipper;
+        clipper.Begin((int)m_pfChunks.size());
+        while (clipper.Step()) {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+                auto& r = m_pfChunks[i];
+                ImGui::TableNextRow();
+                ImGui::PushID(i);
+
+                // NOTE: previously this used ImGuiSelectableFlags_SpanAllColumns so the
+                // whole row was clickable to select it. That made the row-selectable's
+                // hit-rect cover the strucTab combo in column 5 too. Even with
+                // AllowOverlap, the combo's popup would open and immediately get
+                // swallowed by the row's own click handling, so the dropdown looked
+                // like it "didn't respond". Restricting the selectable to just this
+                // column removes the overlap entirely and the combo works normally.
+                ImGui::TableSetColumnIndex(0);
+                bool sel = (i == m_chunkSelected);
+                if (ImGui::Selectable(r.fourcc.c_str(), sel)) {
+                    m_chunkSelected = i; updateSchemaPreview();
                 }
-            } else if (r.tabLabels.size() == 1) {
-                ImGui::TextUnformatted(r.tabLabels[0].c_str());
-            } else {
-                ImGui::TextDisabled("-");
+                ImGui::TableSetColumnIndex(1); ImGui::Text("%d", r.version);
+                ImGui::TableSetColumnIndex(2); ImGui::Text("%zu", r.offset);
+                ImGui::TableSetColumnIndex(3); ImGui::Text("%zu", r.size);
+                ImGui::TableSetColumnIndex(4);
+                if (r.type.empty()) ImGui::TextDisabled("(no schema)");
+                else ImGui::TextUnformatted(r.type.c_str());
+                ImGui::TableSetColumnIndex(5);
+                if (r.tabLabels.size() > 1) {
+                    std::vector<const char*> its; its.reserve(r.tabLabels.size());
+                    for (auto& s : r.tabLabels) its.push_back(s.c_str());
+                    ImGui::SetNextItemWidth(-1);
+                    if (ImGui::Combo("##tab", &r.tabChoice, its.data(), (int)its.size())) {
+                        r.type = (r.tabChoice < (int)r.tabTypes.size()) ? r.tabTypes[r.tabChoice] : std::string();
+                        if (i == m_chunkSelected) updateSchemaPreview();
+                    }
+                } else if (r.tabLabels.size() == 1) {
+                    ImGui::TextUnformatted(r.tabLabels[0].c_str());
+                } else {
+                    ImGui::TextDisabled("-");
+                }
+                ImGui::PopID();
             }
-            ImGui::PopID();
         }
         ImGui::EndTable();
     }
