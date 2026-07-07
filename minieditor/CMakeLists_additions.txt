@@ -1,0 +1,45 @@
+Tambahkan baris ini ke CMakeLists.txt kamu yang sudah ada:
+
+1) Include dir nlohmann/json (sudah kamu tambahkan, pastikan path-nya benar):
+   include_directories(external/nlohmann-json/single_include/)
+
+2) Tambahkan daftar source project (baru):
+   set(APP_SOURCES
+       src/BinaryParser.cpp
+       src/TemplateManager.cpp
+       src/HexViewer.cpp
+       src/TreeView.cpp
+       src/JsonEditor.cpp
+       src/Application.cpp
+       src/main.cpp
+   )
+
+3) Ganti "src/main.cpp" di add_executable() dengan ${APP_SOURCES}:
+
+   add_executable (${PROJECT_NAME}
+       ${IMGUI_SOURCES}
+       ${IMGUIZMO_SOURCES}   # hapus baris ini kalau ImGuizmo tidak dipakai
+       ${STB_SOURCES}        # ganti isi jadi stb_image saja / hapus kalau tidak dipakai
+       ${GLAD_SOURCES}
+       ${APP_SOURCES}
+   )
+
+4) Header file include/ParsedNode.h, BinaryParser.h, TemplateManager.h,
+   HexViewer.h, TreeView.h, JsonEditor.h, Application.h sudah otomatis
+   ter-cover oleh: include_directories(include)
+
+5) Folder "templates/" (berisi texture_example.json) taruh di working
+   directory saat run (biasanya sejajar dengan .exe), karena TemplateManager
+   scan folder "templates" relatif terhadap cwd.
+
+Catatan minor:
+- Perbaiki di bagian atas CMakeLists.txt (redundant, tidak error tapi tidak
+  perlu):
+    set(CXX_STANDARD 20)              <- hapus, tidak berefek tanpa prefix CMAKE_
+    set(CXX_STANDARD_REQUIRED ON)     <- hapus
+  Cukup simpan:
+    set(CMAKE_CXX_STANDARD 20)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+- Kalau link error muncul soal static build di MinGW, tambahkan:
+    target_link_libraries(${PROJECT_NAME} glfw3 opengl32 gdi32 user32 winmm)
