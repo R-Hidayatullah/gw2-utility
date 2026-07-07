@@ -58,12 +58,16 @@ private:
     int m_chunkSelected = -1;
     std::string m_schemaPreview;
 
+    // --- Export panel state ---
+    char m_exportPathBuffer[512] = "parsed_output.json";
+
     bool loadGw2Registry();
     void detectPf();
     std::string resolveChunkType(const std::string& container, const std::string& fourcc, int version);
     void rebuildChunkTabs(const std::string& container);
     void updateSchemaPreview();
     void drawGw2Panel();
+    void exportParsedJson(const std::string& outPath);
 
     void openFile(const std::string& path);
     void runTemplate(const nlohmann::json& templateJson);

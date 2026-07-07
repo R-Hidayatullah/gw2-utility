@@ -9,6 +9,26 @@
 static uint16_t rd16(const std::vector<uint8_t>& b, size_t o){ return (o + 1 < b.size()) ? (uint16_t)(b[o] | (b[o+1] << 8)) : 0; }
 static uint32_t rd32(const std::vector<uint8_t>& b, size_t o){ uint32_t v = 0; for (int i = 0; i < 4; ++i) if (o + i < b.size()) v |= (uint32_t)b[o+i] << (8*i); return v; }
 
+// Recursively mirrors a ParsedNode tree into plain JSON so it can be
+// exported. Leaves get a "value"; groups/structs get a "children" array
+// instead (matching ParsedNode::isLeaf()'s own definition of a leaf).
+static nlohmann::json nodeToJson(const ParsedNodePtr& node) {
+    nlohmann::json j = nlohmann::json::object();
+    if (!node) return j;
+    j["name"] = node->name;
+    if (!node->typeName.empty()) j["type"] = node->typeName;
+    j["offset"] = node->offset;
+    j["size"] = node->size;
+    if (node->isLeaf()) {
+        j["value"] = node->valueString;
+    } else {
+        nlohmann::json kids = nlohmann::json::array();
+        for (const auto& child : node->children) kids.push_back(nodeToJson(child));
+        j["children"] = kids;
+    }
+    return j;
+}
+
 bool Application::init(GLFWwindow* window) {
     m_templateManager.refresh("templates");
 
@@ -56,6 +76,57 @@ void Application::runTemplate(const nlohmann::json& templateJson) {
     } else {
         m_statusMessage = "Parsed successfully.";
     }
+}
+
+// Writes the current parsed tree to a JSON file, alongside the strucTab
+// choice actually used for each GW2 chunk (when the GW2 flow was used), so
+// the export is self-describing and reproducible without needing to re-pick
+// strucTabs by hand later.
+void Application::exportParsedJson(const std::string& outPath) {
+    if (!m_root) {
+        m_statusMessage = "Nothing parsed yet -- run a template or \"Parse file into Tree\" first.";
+        return;
+    }
+
+    nlohmann::json out = nlohmann::json::object();
+    out["sourceFile"] = m_currentFilePath;
+    out["fileSize"] = m_fileData.size();
+
+    // Only populated when the GW2 packfile flow detected a PF header; empty
+    // otherwise (e.g. a plain linear template was used instead).
+    if (m_pfDetected) {
+        nlohmann::json gw2 = nlohmann::json::object();
+        gw2["container"] = m_pfContainer;
+        gw2["pfVersion"] = m_pfVersion;
+        gw2["pointerBits"] = m_pfPtrBits;
+        gw2["headerSize"] = m_pfHeaderSize;
+
+        nlohmann::json chunkSelections = nlohmann::json::array();
+        for (const auto& r : m_pfChunks) {
+            nlohmann::json c = nlohmann::json::object();
+            c["fourcc"] = r.fourcc;
+            c["version"] = r.version;
+            c["offset"] = r.offset;
+            c["size"] = r.size;
+            c["chosenType"] = r.type; // typeKey actually used to parse this chunk
+            if (r.tabChoice >= 0 && r.tabChoice < (int)r.tabLabels.size()) {
+                c["strucTabChoice"] = r.tabLabels[r.tabChoice]; // human-readable strucTab pick
+            }
+            chunkSelections.push_back(c);
+        }
+        gw2["chunkSelections"] = chunkSelections;
+        out["gw2"] = gw2;
+    }
+
+    out["parsed"] = nodeToJson(m_root);
+
+    std::ofstream ofs(outPath, std::ios::binary);
+    if (!ofs) {
+        m_statusMessage = "Export failed: could not write " + outPath;
+        return;
+    }
+    ofs << out.dump(2);
+    m_statusMessage = "Exported parsed result to " + outPath;
 }
 
 // ===================== GW2 packfile panel =====================
@@ -272,6 +343,17 @@ void Application::drawGw2Panel() {
     }
     ImGui::SameLine();
     ImGui::TextDisabled("(result appears in the Parsed Tree panel)");
+
+    ImGui::SetNextItemWidth(300);
+    ImGui::InputText("##exportPath", m_exportPathBuffer, sizeof(m_exportPathBuffer));
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!m_root);
+    if (ImGui::Button("Export parsed JSON")) {
+        exportParsedJson(m_exportPathBuffer);
+    }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    ImGui::TextDisabled("(includes the strucTab picked per chunk above)");
 
     ImGui::Separator();
     ImGui::TextUnformatted("Selected chunk schema:");
