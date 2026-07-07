@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "gw2mcp": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "C:\\Users\\Ridwan Hidayatullah\\Documents\\gw2app\\gw2mcp\\server\\server.py"
+      ],
+      "env": {
+        "GW2_DAT_PATH": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Guild Wars 2\\Gw2.dat",
+        "GW2_LOCAL_DAT_PATH": "C:\\Users\\Ridwan Hidayatullah\\AppData\\Roaming\\Guild Wars 2\\Local.dat"
+      }
+    }
+  }
+}
