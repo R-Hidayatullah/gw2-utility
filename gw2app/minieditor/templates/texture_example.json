@@ -1,0 +1,15 @@
+{
+  "name": "TextureHeader",
+  "endian": "little",
+  "fields": [
+    { "name": "magic",    "type": "char",   "count": 4 },
+    { "name": "width",    "type": "uint32" },
+    { "name": "height",   "type": "uint32" },
+    { "name": "mipmaps",  "type": "uint8"  },
+    {
+      "name": "mipSizes",
+      "type": "uint32",
+      "count": "mipmaps"
+    }
+  ]
+}
