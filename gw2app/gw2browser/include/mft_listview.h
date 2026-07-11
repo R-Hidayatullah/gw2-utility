@@ -28,6 +28,11 @@ void set_filter(HWND listview, std::vector<uint32_t> base_ids);
 
 void set_selection_callback(HWND listview, SelectionCallback callback);
 
+// Optional provider for the Type/Container columns (filled from a loaded index
+// DB). Return false to leave the cells blank. Pass an empty function to clear.
+using MetadataProvider = std::function<bool(uint32_t base_id, std::wstring& type, std::wstring& container)>;
+void set_metadata_provider(HWND listview, MetadataProvider provider);
+
 // Forward WM_NOTIFY messages here from the parent window when
 // notify->hwndFrom is this listview's HWND.
 LRESULT handle_notify(HWND listview, NMHDR* notify);

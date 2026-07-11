@@ -261,10 +261,16 @@ struct GameMatGPU {
     ComPtr<ID3D11Buffer> vcb, pcb;
     ComPtr<ID3D11ShaderResourceView> srv[16];
     std::vector<GameShaderUniform> vsU, psU;
+    std::vector<GameConstOverride> vsConsts, psConsts; // per-material MatConstant values
     uint32_t vsCB = 0, psCB = 0;
     uint64_t renderState = 0;
     ComPtr<ID3D11BlendState> blend; // non-null => translucent (drawn in pass 2)
     bool depthWrite = true;
+    // Bitmask of PS texture slots that are the deferred light-accumulation buffer
+    // (gSs14, sampler global==1). When the light pre-pass is on, render_game binds
+    // our reconstructed light buffer (g_lightSRV) at these slots instead of the
+    // flat grey stand-in, giving the game's albedo*light term real directional shading.
+    uint16_t lightSlots = 0;
     bool ok = false;
 };
 
@@ -274,6 +280,37 @@ ComPtr<ID3D11DeviceContext> g_ctx;
 ComPtr<IDXGISwapChain> g_swap;
 ComPtr<ID3D11RenderTargetView> g_rtv;
 ComPtr<ID3D11DepthStencilView> g_dsv;
+// Offscreen HDR scene target + post-process (GameShader relighting). The game's
+// bgfx material shaders assume a real deferred light buffer we can't run offline,
+// so their output is correct-but-dark; we render them into g_sceneTex then apply
+// an exposure/ambient-lift/gamma pass to the backbuffer.
+ComPtr<ID3D11Texture2D> g_sceneTex;
+ComPtr<ID3D11RenderTargetView> g_sceneRTV;
+ComPtr<ID3D11ShaderResourceView> g_sceneSRV;
+ComPtr<ID3D11VertexShader> g_postVS;
+ComPtr<ID3D11PixelShader> g_postPS;
+ComPtr<ID3D11Buffer> g_postCB;
+bool  g_post_ready = false;
+float g_post_exp = 1.9f;    // exposure multiply (env GW2_POSTEXP)
+float g_post_amb = 0.03f;   // ambient shadow lift (env GW2_POSTAMB)
+float g_post_gamma = 1.18f; // >1 brightens midtones (env GW2_POSTGAMMA)
+// ---- light pre-pass (Option 2): reconstruct the screen-space light-accumulation
+// buffer GW2's DEFERRED materials sample (gSs14). A world-normal G-buffer feeds a
+// fullscreen lighting pass (ambient + sun*N.L); its output is bound at each
+// material's light-buffer slot so `albedo * light` gets real directional shading
+// instead of a flat constant. Env GW2_LIGHTPREPASS=0 falls back to the flat stand-in.
+ComPtr<ID3D11Texture2D> g_nrmTex;              // world-normal G-buffer (RGBA8, *0.5+0.5)
+ComPtr<ID3D11RenderTargetView> g_nrmRTV;
+ComPtr<ID3D11ShaderResourceView> g_nrmSRV;
+ComPtr<ID3D11Texture2D> g_lightTex;           // screen-space light buffer (RGBA16F)
+ComPtr<ID3D11RenderTargetView> g_lightRTV;
+ComPtr<ID3D11ShaderResourceView> g_lightSRV;
+ComPtr<ID3D11VertexShader> g_nrmVs;
+ComPtr<ID3D11PixelShader> g_nrmPs;
+ComPtr<ID3D11VertexShader> g_lightVs;
+ComPtr<ID3D11PixelShader> g_lightPs;
+ComPtr<ID3D11Buffer> g_lightCB;               // SH rig: shRed/shGreen/shBlue/shSun/shSunColor (5x float4)
+bool g_lightprepass_on = true;
 ComPtr<ID3D11VertexShader> g_vs;
 ComPtr<ID3D11PixelShader> g_ps;
 ComPtr<ID3D11InputLayout> g_il;
@@ -380,6 +417,46 @@ void create_targets() {
     if (SUCCEEDED(g_dev->CreateTexture2D(&dd, nullptr, &ds))) {
         g_dev->CreateDepthStencilView(ds.Get(), nullptr, &g_dsv);
     }
+
+    // Offscreen HDR color target for the GameShader relight post-process.
+    g_sceneTex.Reset(); g_sceneRTV.Reset(); g_sceneSRV.Reset();
+    D3D11_TEXTURE2D_DESC cd{};
+    cd.Width = static_cast<UINT>(g_w);
+    cd.Height = static_cast<UINT>(g_h);
+    cd.MipLevels = 1;
+    cd.ArraySize = 1;
+    cd.Format = DXGI_FORMAT_R16G16B16A16_FLOAT; // headroom so exposure doesn't clip pre-gamma
+    cd.SampleDesc.Count = 1;
+    cd.Usage = D3D11_USAGE_DEFAULT;
+    cd.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    if (SUCCEEDED(g_dev->CreateTexture2D(&cd, nullptr, &g_sceneTex))) {
+        g_dev->CreateRenderTargetView(g_sceneTex.Get(), nullptr, &g_sceneRTV);
+        g_dev->CreateShaderResourceView(g_sceneTex.Get(), nullptr, &g_sceneSRV);
+    }
+
+    // Light pre-pass targets: a world-normal G-buffer (RGBA8) and the screen-space
+    // light-accumulation buffer (RGBA16F, headroom for sun > 1) bound as gSs14.
+    g_nrmTex.Reset(); g_nrmRTV.Reset(); g_nrmSRV.Reset();
+    g_lightTex.Reset(); g_lightRTV.Reset(); g_lightSRV.Reset();
+    D3D11_TEXTURE2D_DESC nd{};
+    nd.Width = static_cast<UINT>(g_w);
+    nd.Height = static_cast<UINT>(g_h);
+    nd.MipLevels = 1;
+    nd.ArraySize = 1;
+    nd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    nd.SampleDesc.Count = 1;
+    nd.Usage = D3D11_USAGE_DEFAULT;
+    nd.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    if (SUCCEEDED(g_dev->CreateTexture2D(&nd, nullptr, &g_nrmTex))) {
+        g_dev->CreateRenderTargetView(g_nrmTex.Get(), nullptr, &g_nrmRTV);
+        g_dev->CreateShaderResourceView(g_nrmTex.Get(), nullptr, &g_nrmSRV);
+    }
+    D3D11_TEXTURE2D_DESC ld = nd;
+    ld.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    if (SUCCEEDED(g_dev->CreateTexture2D(&ld, nullptr, &g_lightTex))) {
+        g_dev->CreateRenderTargetView(g_lightTex.Get(), nullptr, &g_lightRTV);
+        g_dev->CreateShaderResourceView(g_lightTex.Get(), nullptr, &g_lightSRV);
+    }
 }
 
 bool create_device(HWND hwnd) {
@@ -404,6 +481,86 @@ bool create_device(HWND hwnd) {
     return SUCCEEDED(hr);
 }
 
+// Fullscreen post-process: brighten the (correct but dark) game-shader output.
+// VS builds a fullscreen triangle from SV_VertexID (no vertex buffer); PS applies
+// exposure, a small ambient lift so crushed shadows regain detail, then a >1
+// gamma to lift midtones. Kept LDR-safe with saturate().
+const char* kPostHLSL = R"(
+Texture2D gScene : register(t0);
+SamplerState gSamp : register(s0);
+cbuffer Post : register(b0) { float4 gP; }; // x=exposure y=ambient z=invGamma
+struct VO { float4 pos:SV_Position; float2 uv:TEXCOORD0; };
+VO VSPost(uint id:SV_VertexID) {
+    VO o; float2 t = float2((id << 1) & 2, id & 2);
+    o.uv = t; o.pos = float4(t * float2(2,-2) + float2(-1,1), 0, 1); return o;
+}
+float4 PSPost(VO i):SV_Target {
+    float3 c = gScene.Sample(gSamp, i.uv).rgb;
+    c = c * gP.x + gP.y;                        // exposure + ambient lift (HDR)
+    // Soft-knee highlight rolloff: shadows/mids (< knee) pass through unchanged, so the
+    // tuned look of darker models (bosses, props) is preserved; highlights compress
+    // smoothly toward white instead of the old hard saturate() that clipped bright/pale
+    // materials (pale skin, gold trim, emissive glow) to a flat white blob. Values >= knee
+    // map into [knee,1). Approximates the game's HDR tonemap.
+    const float knee = 0.75;
+    float3 hi = max(c - knee, 0.0);
+    c = min(c, knee) + (1.0 - knee) * hi / ((1.0 - knee) + hi);
+    c = pow(saturate(c), gP.z);                // gamma (invGamma in gP.z)
+    return float4(c, 1);
+}
+)";
+
+// ---- light pre-pass shaders (Option 2) ------------------------------------
+// (1) World-normal G-buffer. Reuses CB (register b0): only uMVP + uModel are read.
+// Input is GVertex (POSITION+NORMAL used) -- works with the already-skinned buffer,
+// so the stored normals match exactly what the material pass will draw at each pixel.
+const char* kNrmHLSL = R"(
+cbuffer CB : register(b0) { row_major float4x4 uMVP; row_major float4x4 uModel; };
+struct VIn  { float3 pos:POSITION; float3 nrm:NORMAL; };
+struct VOut { float4 pos:SV_POSITION; float3 wn:TEXCOORD0; };
+VOut VSNrm(VIn i){
+    VOut o;
+    o.pos = mul(float4(i.pos, 1.0), uMVP);
+    o.wn  = normalize(mul(float4(i.nrm, 0.0), uModel).xyz);  // world-space normal
+    return o;
+}
+float4 PSNrm(VOut i):SV_TARGET{ return float4(normalize(i.wn) * 0.5 + 0.5, 1.0); }
+)";
+
+// (2) Fullscreen light-accumulation pass. Reads the world-normal buffer and writes
+// the game's EXACT SH diffuse-lighting model -- ported verbatim from the real
+// Forward-SH-lit material pixel shader extracted from the client executable
+// (gw2mcp/tools/exe_shaders #1428). The game computes, per channel:
+//     SH ambient = dot(float4(N,1), sh{Red,Green,Blue})     (directional, not flat)
+//     sun diffuse = saturate(dot(float4(N,1), shSun)) * shSunColor.rgb
+//     colour      = SH ambient + shadow * sun diffuse        (shadow = 1 offline)
+// driven by the SAME sh* rig the forward materials use (g_game_vals), so deferred
+// materials (which sample this buffer as gSs14) and forward materials shade with
+// one consistent, game-accurate lighting model. Background (N=0) collapses to the
+// SH DC term (each channel's .w) = ambient only. .a carries a specular proxy.
+const char* kLightHLSL = R"(
+Texture2D gNrm : register(t0);
+SamplerState gSamp : register(s0);
+cbuffer L : register(b0) { float4 shRed; float4 shGreen; float4 shBlue; float4 shSun; float4 shSunColor; };
+struct VO { float4 pos:SV_Position; float2 uv:TEXCOORD0; };
+VO VSFS(uint id:SV_VertexID){
+    VO o; float2 t = float2((id << 1) & 2, id & 2);
+    o.uv = t; o.pos = float4(t * float2(2,-2) + float2(-1,1), 0, 1); return o;
+}
+float4 PSLight(VO i):SV_Target{
+    float3 n = gNrm.Sample(gSamp, i.uv).rgb * 2.0 - 1.0;
+    float len = length(n);
+    if (len < 0.1) return float4(shRed.w, shGreen.w, shBlue.w, 0.0); // no geometry: SH DC term
+    n /= len;
+    float4 N4 = float4(n, 1.0);
+    float3 amb = float3(dot(N4, shRed), dot(N4, shGreen), dot(N4, shBlue)); // directional SH ambient
+    float ndl = saturate(dot(N4, shSun));            // shSun.w = 0 => dot(n, shSun.xyz)
+    float3 diff = amb + shSunColor.rgb * ndl;
+    float spec = pow(ndl, 8.0) * shSunColor.w;       // .a spec proxy (no view vec offline)
+    return float4(diff, spec);
+}
+)";
+
 bool init_pipeline() {
     ComPtr<ID3DBlob> vsb, psb, err;
     if (FAILED(D3DCompile(kHLSL, std::strlen(kHLSL), nullptr, nullptr, nullptr, "VSMain", "vs_5_0", 0, 0, &vsb, &err)))
@@ -412,6 +569,25 @@ bool init_pipeline() {
         return false;
     if (FAILED(g_dev->CreateVertexShader(vsb->GetBufferPointer(), vsb->GetBufferSize(), nullptr, &g_vs))) return false;
     if (FAILED(g_dev->CreatePixelShader(psb->GetBufferPointer(), psb->GetBufferSize(), nullptr, &g_ps))) return false;
+
+    // Post-process shaders + its 16-byte cbuffer (best-effort; darkness fix only).
+    {
+        if (const char* e = std::getenv("GW2_POSTEXP"))   { double v = std::atof(e); if (v > 0.01) g_post_exp = (float)v; }
+        if (const char* e = std::getenv("GW2_POSTAMB"))   { double v = std::atof(e); if (v >= 0)   g_post_amb = (float)v; }
+        if (const char* e = std::getenv("GW2_POSTGAMMA")) { double v = std::atof(e); if (v > 0.05) g_post_gamma = (float)v; }
+        ComPtr<ID3DBlob> pvs, pps, perr;
+        if (SUCCEEDED(D3DCompile(kPostHLSL, std::strlen(kPostHLSL), nullptr, nullptr, nullptr, "VSPost", "vs_5_0", 0, 0, &pvs, &perr)) &&
+            SUCCEEDED(D3DCompile(kPostHLSL, std::strlen(kPostHLSL), nullptr, nullptr, nullptr, "PSPost", "ps_5_0", 0, 0, &pps, &perr)) &&
+            SUCCEEDED(g_dev->CreateVertexShader(pvs->GetBufferPointer(), pvs->GetBufferSize(), nullptr, &g_postVS)) &&
+            SUCCEEDED(g_dev->CreatePixelShader(pps->GetBufferPointer(), pps->GetBufferSize(), nullptr, &g_postPS))) {
+            D3D11_BUFFER_DESC pd{};
+            pd.Usage = D3D11_USAGE_DYNAMIC;
+            pd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+            pd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+            pd.ByteWidth = 16;
+            if (SUCCEEDED(g_dev->CreateBuffer(&pd, nullptr, &g_postCB))) g_post_ready = true;
+        }
+    }
 
     const D3D11_INPUT_ELEMENT_DESC il[] = {
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
@@ -488,6 +664,31 @@ bool init_pipeline() {
     rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
     rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
     g_dev->CreateBlendState(&ba, &g_blendAlpha);
+
+    // ---- light pre-pass shaders + sun/ambient cbuffer (Option 2 lighting) ----
+    if (const char* e = std::getenv("GW2_LIGHTPREPASS")) g_lightprepass_on = std::atoi(e) != 0;
+    {
+        ComPtr<ID3DBlob> nvsb, npsb, lvsb2, lpsb2, lerr2;
+        if (SUCCEEDED(D3DCompile(kNrmHLSL, std::strlen(kNrmHLSL), nullptr, nullptr, nullptr, "VSNrm", "vs_5_0", 0, 0, &nvsb, &lerr2)) &&
+            SUCCEEDED(D3DCompile(kNrmHLSL, std::strlen(kNrmHLSL), nullptr, nullptr, nullptr, "PSNrm", "ps_5_0", 0, 0, &npsb, &lerr2)) &&
+            SUCCEEDED(D3DCompile(kLightHLSL, std::strlen(kLightHLSL), nullptr, nullptr, nullptr, "VSFS", "vs_5_0", 0, 0, &lvsb2, &lerr2)) &&
+            SUCCEEDED(D3DCompile(kLightHLSL, std::strlen(kLightHLSL), nullptr, nullptr, nullptr, "PSLight", "ps_5_0", 0, 0, &lpsb2, &lerr2))) {
+            g_dev->CreateVertexShader(nvsb->GetBufferPointer(), nvsb->GetBufferSize(), nullptr, &g_nrmVs);
+            g_dev->CreatePixelShader(npsb->GetBufferPointer(), npsb->GetBufferSize(), nullptr, &g_nrmPs);
+            g_dev->CreateVertexShader(lvsb2->GetBufferPointer(), lvsb2->GetBufferSize(), nullptr, &g_lightVs);
+            g_dev->CreatePixelShader(lpsb2->GetBufferPointer(), lpsb2->GetBufferSize(), nullptr, &g_lightPs);
+        }
+        // The light cbuffer now carries the SH rig (shRed/shGreen/shBlue/shSun/
+        // shSunColor = 5 float4 = 80 bytes) and is refilled per frame in
+        // render_light_prepass() straight from g_game_vals -- the identical values
+        // the forward materials bind -- so both paths share one lighting model.
+        D3D11_BUFFER_DESC lbd{};
+        lbd.Usage = D3D11_USAGE_DYNAMIC;
+        lbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        lbd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        lbd.ByteWidth = 80; // 5 x float4
+        g_dev->CreateBuffer(&lbd, nullptr, &g_lightCB);
+    }
     return true;
 }
 
@@ -582,7 +783,8 @@ UINT game_cb_size(const std::vector<GameShaderUniform>& u, uint32_t constBuf) {
     return sz < 16 ? 16 : sz;
 }
 void game_fill_cb(std::vector<uint8_t>& buf, const std::vector<GameShaderUniform>& u,
-                  const std::map<std::string, std::vector<float>>& vals) {
+                  const std::map<std::string, std::vector<float>>& vals,
+                  const std::vector<GameConstOverride>& consts) {
     std::fill(buf.begin(), buf.end(), (uint8_t)0);
     for (const auto& x : u) {
         if (x.type == 0) continue;
@@ -591,12 +793,19 @@ void game_fill_cb(std::vector<uint8_t>& buf, const std::vector<GameShaderUniform
         size_t n = std::min((size_t)x.vec4s * 16, it->second.size() * 4);
         if ((size_t)x.byteOff + n <= buf.size()) std::memcpy(buf.data() + x.byteOff, it->second.data(), n);
     }
+    // Per-material MatConstants overwrite the shared fill at their exact offsets
+    // (glow/spec/scroll/tint/etc.) -- these are what make effect materials look right.
+    for (const auto& c : consts) {
+        if ((size_t)c.byteOff + sizeof(c.value) <= buf.size())
+            std::memcpy(buf.data() + c.byteOff, c.value, sizeof(c.value));
+    }
 }
 ComPtr<ID3D11Buffer> game_build_cb(const std::vector<GameShaderUniform>& u, uint32_t constBuf,
-                                   const std::map<std::string, std::vector<float>>& vals) {
+                                   const std::map<std::string, std::vector<float>>& vals,
+                                   const std::vector<GameConstOverride>& consts) {
     UINT sz = game_cb_size(u, constBuf);
     std::vector<uint8_t> buf(sz, 0);
-    game_fill_cb(buf, u, vals);
+    game_fill_cb(buf, u, vals, consts);
     D3D11_BUFFER_DESC bd{};
     bd.Usage = D3D11_USAGE_DYNAMIC; bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; bd.ByteWidth = sz;
@@ -606,11 +815,12 @@ ComPtr<ID3D11Buffer> game_build_cb(const std::vector<GameShaderUniform>& u, uint
     return b;
 }
 void game_update_cb(ID3D11Buffer* b, const std::vector<GameShaderUniform>& u, uint32_t constBuf,
-                    const std::map<std::string, std::vector<float>>& vals) {
+                    const std::map<std::string, std::vector<float>>& vals,
+                    const std::vector<GameConstOverride>& consts) {
     if (!b) return;
     UINT sz = game_cb_size(u, constBuf);
     std::vector<uint8_t> buf(sz, 0);
-    game_fill_cb(buf, u, vals);
+    game_fill_cb(buf, u, vals, consts);
     D3D11_MAPPED_SUBRESOURCE m;
     if (SUCCEEDED(g_ctx->Map(b, 0, D3D11_MAP_WRITE_DISCARD, 0, &m))) {
         std::memcpy(m.pData, buf.data(), sz);
@@ -657,6 +867,11 @@ void shutdown() {
     g_dssNoWrite.Reset(); g_dss.Reset();
     g_rsWire.Reset(); g_rsSolid.Reset();
     g_samp.Reset(); g_cb.Reset(); g_il.Reset(); g_ps.Reset(); g_vs.Reset();
+    g_postCB.Reset(); g_postPS.Reset(); g_postVS.Reset();
+    g_lightCB.Reset(); g_lightPs.Reset(); g_lightVs.Reset(); g_nrmPs.Reset(); g_nrmVs.Reset();
+    g_lightSRV.Reset(); g_lightRTV.Reset(); g_lightTex.Reset();
+    g_nrmSRV.Reset(); g_nrmRTV.Reset(); g_nrmTex.Reset();
+    g_sceneSRV.Reset(); g_sceneRTV.Reset(); g_sceneTex.Reset(); g_post_ready = false;
     g_dsv.Reset(); g_rtv.Reset(); g_swap.Reset(); g_ctx.Reset(); g_dev.Reset();
     g_hwnd = nullptr;
 }
@@ -892,10 +1107,15 @@ void setup_game_uniforms() {
     float s = 0.92f * lit;
     put("shSunColor", {s, s * 0.94f, s * 0.86f, 1});
     put("shSunData", {sdx, sdy, sdz, 0});
-    // Dimmer SH ambient (DC in .w) so shadowed sides stay dark and moody.
+    // SH ambient, float4 = (Lx, Ly, Lz, DC). The engine's real light PS reads it as
+    // dot(float4(N,1), shChannel), so .w is the flat (DC) term and .y adds a vertical
+    // sky gradient (surfaces facing up get more). Calibrated to daylight levels so the
+    // game's directional SH model reads as lit (not near-black) while keeping shadowed
+    // sides moody -- brighter than the old hand-tuned values that assumed a flat grey
+    // light-buffer stand-in. Scaled by GW2_LIGHT (a).
     float a = lit;
-    put("shRed", {0, 0.06f * a, 0, 0.16f * a}); put("shGreen", {0, 0.07f * a, 0, 0.18f * a});
-    put("shBlue", {0, 0.09f * a, 0, 0.24f * a});
+    put("shRed", {0, 0.10f * a, 0, 0.32f * a}); put("shGreen", {0, 0.11f * a, 0, 0.35f * a});
+    put("shBlue", {0, 0.13f * a, 0, 0.40f * a});
     put("SunColor", {0, 0, 0, 0}); put("SunDirection", {-0.4f, -0.8f, -0.4f, 0});
     put("AmbientColor", {0, 0, 0, 0}); put("AlphaRef", {0, 0, 0, 0}); put("fadedif", {1, 1, 1, 1});
     put("FogColorNearMinusFar", {0, 0, 0, 0}); put("FogColorFar", {0, 0, 0, 0}); put("FogColorHeight", {0, 0, 0, 0});
@@ -955,8 +1175,9 @@ void build_game_materials(const ModelPreview& model) {
             continue;
 
         g.vsU = c.vsUniforms; g.psU = c.psUniforms; g.vsCB = c.vsConstBuf; g.psCB = c.psConstBuf;
-        g.vcb = game_build_cb(g.vsU, g.vsCB, g_game_vals);
-        g.pcb = game_build_cb(g.psU, g.psCB, g_game_vals);
+        g.vsConsts = c.vsConsts; g.psConsts = c.psConsts;
+        g.vcb = game_build_cb(g.vsU, g.vsCB, g_game_vals, g.vsConsts);
+        g.pcb = game_build_cb(g.psU, g.psCB, g_game_vals, g.psConsts);
 
         for (const auto& s : c.samplers) {
             if (s.slot < 0 || s.slot >= 16) continue;
@@ -969,6 +1190,7 @@ void build_game_materials(const ModelPreview& model) {
                 int lv = 110;
                 if (const char* e = std::getenv("GW2_GLOBALLIT")) { int v = std::atoi(e); if (v >= 0 && v <= 255) lv = v; }
                 g.srv[s.slot] = make_solid(static_cast<uint8_t>(lv), static_cast<uint8_t>(lv), static_cast<uint8_t>(lv), 255);
+                g.lightSlots |= static_cast<uint16_t>(1u << s.slot); // deferred light buffer (gSs14)
             }
             else if (s.gameTex >= 0 && s.gameTex < static_cast<int>(model.textures.size())) {
                 const auto& t = model.textures[s.gameTex];
@@ -1239,6 +1461,8 @@ void set_layer_visible(int layer, bool visible) { if (layer >= 0 && layer < LAYE
 bool layer_visible(int layer) { return (layer >= 0 && layer < LAYER_COUNT) ? g_layer_visible[layer] : false; }
 
 void set_mode(RenderMode mode) { g_mode = mode; }
+void set_lightprepass(bool on) { g_lightprepass_on = on; }
+bool lightprepass() { return g_lightprepass_on; }
 void set_show_skeleton(bool show) { g_show_skeleton = show; }
 bool has_skeleton() { return g_has_skeleton; }
 
@@ -1467,17 +1691,171 @@ bool cpu_skin_into(ID3D11Buffer* dst) {
     return true;
 }
 
+// Fullscreen relight pass: samples the offscreen game-shader render (g_sceneSRV)
+// and writes exposure+ambient+gamma-brightened color to the backbuffer. Bound
+// with no depth view so the fullscreen triangle always draws.
+void post_process_relight() {
+    if (!g_post_ready) return;
+    ID3D11RenderTargetView* rt[] = {g_rtv.Get()};
+    g_ctx->OMSetRenderTargets(1, rt, nullptr);
+    D3D11_VIEWPORT vp{0, 0, static_cast<float>(g_w), static_cast<float>(g_h), 0, 1};
+    g_ctx->RSSetViewports(1, &vp);
+    g_ctx->RSSetState(g_rsSolid.Get());
+    g_ctx->OMSetDepthStencilState(g_dssNoDepth.Get(), 0);
+    const float bf[4] = {0, 0, 0, 0};
+    g_ctx->OMSetBlendState(g_blendOpaque.Get(), bf, 0xffffffff);
+
+    D3D11_MAPPED_SUBRESOURCE m;
+    if (SUCCEEDED(g_ctx->Map(g_postCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &m))) {
+        float p[4] = {g_post_exp, g_post_amb, 1.0f / g_post_gamma, 0.0f};
+        std::memcpy(m.pData, p, sizeof p);
+        g_ctx->Unmap(g_postCB.Get(), 0);
+    }
+    g_ctx->IASetInputLayout(nullptr);
+    ID3D11Buffer* nvb[1] = {nullptr}; UINT zs = 0, zo = 0;
+    g_ctx->IASetVertexBuffers(0, 1, nvb, &zs, &zo);
+    g_ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    g_ctx->VSSetShader(g_postVS.Get(), nullptr, 0);
+    g_ctx->PSSetShader(g_postPS.Get(), nullptr, 0);
+    ID3D11Buffer* cbs[] = {g_postCB.Get()};
+    g_ctx->PSSetConstantBuffers(0, 1, cbs);
+    ID3D11ShaderResourceView* srv[] = {g_sceneSRV.Get()};
+    g_ctx->PSSetShaderResources(0, 1, srv);
+    ID3D11SamplerState* smp[] = {g_samp.Get()};
+    g_ctx->PSSetSamplers(0, 1, smp);
+    g_ctx->Draw(3, 0);
+    ID3D11ShaderResourceView* nil[] = {nullptr};
+    g_ctx->PSSetShaderResources(0, 1, nil); // avoid RTV/SRV bind hazard next frame
+}
+
+// Light pre-pass (Option 2): rebuilds the screen-space light-accumulation buffer
+// the deferred game materials sample as gSs14. Pass 1 renders world normals into
+// g_nrmTex (same camera as render_game, so screen positions align pixel-for-pixel);
+// pass 2 is a fullscreen shader that turns those normals into ambient + sun*N.L and
+// writes g_lightTex. render_game then binds g_lightSRV at each material's light slot.
+// `vbUse` is the (possibly CPU-skinned) vertex buffer, shared with render_game so
+// the normals match the drawn geometry exactly.
+void render_light_prepass(ID3D11Buffer* vbUse) {
+    if (!g_nrmRTV || !g_lightRTV || !g_nrmVs || !g_nrmPs || !g_lightVs || !g_lightPs || !g_ib) return;
+
+    // Same camera as render_game (identical inputs/formula => identical projection).
+    float camDist = g_radius * g_dist;
+    Vec3 eye{g_center.x, g_center.y, g_center.z - camDist};
+    Mat4 view = lookAt(eye, g_center, {0, 1, 0});
+    // Tight near/far bracketing the model: a huge near:far ratio (old 0.02:40 = 1:2000)
+    // wrecks 24-bit depth precision, so near-coplanar planes z-fight into salt-and-pepper.
+    float zn = std::max(camDist - g_radius * 1.5f, g_radius * 0.05f);
+    float zf = camDist + g_radius * 3.0f;
+    Mat4 proj = perspective(0.9f, static_cast<float>(g_w) / std::max(1, g_h), zn, zf);
+    Mat4 model = mul(translate({-g_center.x, -g_center.y, -g_center.z}), mul(g_rot, translate(g_center)));
+    Mat4 mvp = mul(model, mul(view, proj));
+
+    // Fill CB (only uMVP + uModel are read by the normal shader).
+    CB cb{};
+    cb.mvp = mvp;
+    cb.model = model;
+    D3D11_MAPPED_SUBRESOURCE ms;
+    if (SUCCEEDED(g_ctx->Map(g_cb.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms))) {
+        std::memcpy(ms.pData, &cb, sizeof cb);
+        g_ctx->Unmap(g_cb.Get(), 0);
+    }
+
+    // Refill the SH lighting cbuffer from the shared rig (g_game_vals) so the light
+    // buffer PSLight uses the exact same shRed/shGreen/shBlue/shSun/shSunColor the
+    // forward-lit materials bind -- one consistent, game-accurate SH lighting model.
+    if (g_lightCB) {
+        float sh[20] = {0};
+        auto put = [&](int i, const char* n, float a, float b, float c, float d) {
+            float v[4] = {a, b, c, d};
+            auto it = g_game_vals.find(n);
+            if (it != g_game_vals.end())
+                for (size_t k = 0; k < 4 && k < it->second.size(); ++k) v[k] = it->second[k];
+            sh[i * 4] = v[0]; sh[i * 4 + 1] = v[1]; sh[i * 4 + 2] = v[2]; sh[i * 4 + 3] = v[3];
+        };
+        put(0, "shRed", 0, 0.10f, 0, 0.32f);
+        put(1, "shGreen", 0, 0.11f, 0, 0.35f);
+        put(2, "shBlue", 0, 0.13f, 0, 0.40f);
+        put(3, "shSun", 0.45f, 0.80f, 0.40f, 0);
+        put(4, "shSunColor", 0.92f, 0.86f, 0.79f, 1);
+        D3D11_MAPPED_SUBRESOURCE lms;
+        if (SUCCEEDED(g_ctx->Map(g_lightCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &lms))) {
+            std::memcpy(lms.pData, sh, sizeof sh);
+            g_ctx->Unmap(g_lightCB.Get(), 0);
+        }
+    }
+
+    D3D11_VIEWPORT vp{0, 0, static_cast<float>(g_w), static_cast<float>(g_h), 0, 1};
+    const float bf[4] = {0, 0, 0, 0};
+
+    // --- pass 1: world-normal G-buffer (own depth via g_dsv; re-cleared before the
+    //     material pass). Background clears to N=0 (0.5,0.5,0.5) -> ambient-only. ---
+    const float nclr[4] = {0.5f, 0.5f, 0.5f, 0.0f};
+    g_ctx->ClearRenderTargetView(g_nrmRTV.Get(), nclr);
+    if (g_dsv) g_ctx->ClearDepthStencilView(g_dsv.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+    ID3D11RenderTargetView* nrt[] = {g_nrmRTV.Get()};
+    g_ctx->OMSetRenderTargets(1, nrt, g_dsv.Get());
+    g_ctx->RSSetViewports(1, &vp);
+    g_ctx->RSSetState(g_rsSolid.Get());
+    g_ctx->OMSetDepthStencilState(g_dss.Get(), 0);
+    g_ctx->OMSetBlendState(g_blendOpaque.Get(), bf, 0xffffffff);
+    UINT stride = sizeof(GVertex), off = 0;
+    ID3D11Buffer* vbs[] = {vbUse};
+    g_ctx->IASetInputLayout(g_il.Get()); // GVertex layout; VSNrm reads a subset (POSITION+NORMAL)
+    g_ctx->IASetVertexBuffers(0, 1, vbs, &stride, &off);
+    g_ctx->IASetIndexBuffer(g_ib.Get(), DXGI_FORMAT_R32_UINT, 0);
+    g_ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    g_ctx->VSSetShader(g_nrmVs.Get(), nullptr, 0);
+    g_ctx->PSSetShader(g_nrmPs.Get(), nullptr, 0);
+    ID3D11Buffer* cbs[] = {g_cb.Get()};
+    g_ctx->VSSetConstantBuffers(0, 1, cbs);
+    // Opaque submeshes only: translucent/coplanar planes (billboards, glass) must not
+    // write the normal/depth buffer -- they SAMPLE the light buffer of the opaque
+    // surface behind them. Writing them here just corrupts the light with z-fight.
+    for (const auto& s : g_subs) {
+        if (s.matIndex < g_game_mats.size() && g_game_mats[s.matIndex].ok && g_game_mats[s.matIndex].blend)
+            continue;
+        g_ctx->DrawIndexed(s.indexCount, s.indexStart, 0);
+    }
+
+    // --- pass 2: fullscreen lighting -> g_lightTex ---
+    ID3D11RenderTargetView* lrt[] = {g_lightRTV.Get()};
+    g_ctx->OMSetRenderTargets(1, lrt, nullptr);
+    g_ctx->RSSetViewports(1, &vp);
+    g_ctx->OMSetDepthStencilState(g_dssNoDepth.Get(), 0);
+    g_ctx->OMSetBlendState(g_blendOpaque.Get(), bf, 0xffffffff);
+    g_ctx->IASetInputLayout(nullptr);
+    ID3D11Buffer* nvb[1] = {nullptr}; UINT zs = 0, zo = 0;
+    g_ctx->IASetVertexBuffers(0, 1, nvb, &zs, &zo);
+    g_ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    g_ctx->VSSetShader(g_lightVs.Get(), nullptr, 0);
+    g_ctx->PSSetShader(g_lightPs.Get(), nullptr, 0);
+    ID3D11Buffer* lcbs[] = {g_lightCB.Get()};
+    g_ctx->PSSetConstantBuffers(0, 1, lcbs);
+    ID3D11ShaderResourceView* nsrv[] = {g_nrmSRV.Get()};
+    g_ctx->PSSetShaderResources(0, 1, nsrv);
+    ID3D11SamplerState* smp[] = {g_samp.Get()};
+    g_ctx->PSSetSamplers(0, 1, smp);
+    g_ctx->Draw(3, 0);
+    ID3D11ShaderResourceView* nil[] = {nullptr};
+    g_ctx->PSSetShaderResources(0, 1, nil); // release g_nrmSRV before it's an RTV again
+}
+
 // Draws the single model with each submesh's own GAME bgfx VS+PS (opaque pass
 // then translucent back-to-front). Reuses g_vb/g_ib (GVertex). Camera matches
 // the reconstruction path so the two modes frame identically. Assumes the RTV /
-// depth / viewport are already bound by render().
-void render_game() {
+// depth / viewport are already bound by render(). `vbUse` is the (possibly
+// CPU-skinned) vertex buffer chosen by the caller.
+void render_game(ID3D11Buffer* vbUse) {
     g_ctx->RSSetState(g_rsSolid.Get());
 
     float camDist = g_radius * g_dist;
     Vec3 eye{g_center.x, g_center.y, g_center.z - camDist};
     Mat4 view = lookAt(eye, g_center, {0, 1, 0});
-    Mat4 proj = perspective(0.9f, static_cast<float>(g_w) / std::max(1, g_h), g_radius * 0.02f, g_radius * 40.0f);
+    // Tight near/far (must match render_light_prepass exactly for pixel-aligned light):
+    // the old 0.02:40 range starved depth precision -> coplanar z-fight.
+    float zn = std::max(camDist - g_radius * 1.5f, g_radius * 0.05f);
+    float zf = camDist + g_radius * 3.0f;
+    Mat4 proj = perspective(0.9f, static_cast<float>(g_w) / std::max(1, g_h), zn, zf);
     Mat4 model = mul(translate({-g_center.x, -g_center.y, -g_center.z}), mul(g_rot, translate(g_center)));
     Mat4 vp = mul(view, proj);
     Mat4 mvp = mul(model, vp);
@@ -1500,16 +1878,13 @@ void render_game() {
 
     for (auto& g : g_game_mats) {
         if (!g.ok) continue;
-        game_update_cb(g.vcb.Get(), g.vsU, g.vsCB, g_game_vals);
-        game_update_cb(g.pcb.Get(), g.psU, g.psCB, g_game_vals);
+        game_update_cb(g.vcb.Get(), g.vsU, g.vsCB, g_game_vals, g.vsConsts);
+        game_update_cb(g.pcb.Get(), g.psU, g.psCB, g_game_vals, g.psConsts);
     }
 
-    // The game VS wants pre-skinned vertices (it has no bone inputs). When a rig
-    // is posed, CPU-skin the rest mesh into g_vb_skinned and draw that.
-    bool posed = (g_clip_index >= 0 && g_clip_index < static_cast<int>(g_clips.size()));
-    ID3D11Buffer* vbUse = g_vb.Get();
-    if (g_skin_ok && g_vb_skinned && posed && cpu_skin_into(g_vb_skinned.Get())) vbUse = g_vb_skinned.Get();
-
+    // The game VS wants pre-skinned vertices (it has no bone inputs). `vbUse` was
+    // chosen by render() (CPU-skinned when a rig is posed) and shared with the
+    // light pre-pass so both see identical geometry.
     UINT stride = sizeof(GVertex), off = 0;
     ID3D11Buffer* vbs[] = {vbUse};
     g_ctx->IASetVertexBuffers(0, 1, vbs, &stride, &off);
@@ -1533,6 +1908,12 @@ void render_game() {
         g_ctx->PSSetConstantBuffers(0, 1, pcb);
         ID3D11ShaderResourceView* srvs[16];
         for (int i = 0; i < 16; i++) srvs[i] = g.srv[i].Get();
+        // Bind our reconstructed light buffer at the deferred light-buffer slot(s)
+        // so `albedo * light` gets real directional shading instead of a flat grey.
+        if (g_lightprepass_on && g_lightSRV && g.lightSlots) {
+            for (int i = 0; i < 16; i++)
+                if (g.lightSlots & (1u << i)) srvs[i] = g_lightSRV.Get();
+        }
         g_ctx->PSSetShaderResources(0, 16, srvs);
         g_ctx->DrawIndexed(s.indexCount, s.indexStart, 0);
     };
@@ -1628,7 +2009,39 @@ void render() {
     const float bf[4] = {0, 0, 0, 0};
 
     if (useGame) {
-        render_game();
+        // CPU-skin once (the game VS take pre-skinned verts); the same buffer feeds
+        // both the light pre-pass and the material draw so their geometry matches.
+        bool posed = (g_clip_index >= 0 && g_clip_index < static_cast<int>(g_clips.size()));
+        ID3D11Buffer* vbUse = g_vb.Get();
+        if (g_skin_ok && g_vb_skinned && posed && cpu_skin_into(g_vb_skinned.Get())) vbUse = g_vb_skinned.Get();
+
+        // Reconstruct the screen-space light-accumulation buffer (Option 2) so the
+        // deferred materials get real directional shading. Renders to its own
+        // targets; render_game's scene target/depth are (re)bound right after.
+        if (g_lightprepass_on) render_light_prepass(vbUse);
+
+        // Game shaders render correct-but-dark (no offline deferred light buffer):
+        // draw them into the offscreen HDR target, then relight onto the backbuffer.
+        if (g_post_ready && g_sceneRTV && g_sceneSRV) {
+            const float sclr[4] = {0.10f, 0.11f, 0.13f, 1.0f};
+            g_ctx->ClearRenderTargetView(g_sceneRTV.Get(), sclr);
+            if (g_dsv) g_ctx->ClearDepthStencilView(g_dsv.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+            ID3D11RenderTargetView* srt[] = {g_sceneRTV.Get()};
+            g_ctx->OMSetRenderTargets(1, srt, g_dsv.Get());
+            g_ctx->RSSetViewports(1, &vp);
+            render_game(vbUse);
+            post_process_relight();
+        } else {
+            // No post target: the prepass left its own RT/depth bound -- restore the
+            // backbuffer (and re-clear the depth the prepass overwrote) before drawing.
+            const float sclr[4] = {0.10f, 0.11f, 0.13f, 1.0f};
+            g_ctx->ClearRenderTargetView(g_rtv.Get(), sclr);
+            if (g_dsv) g_ctx->ClearDepthStencilView(g_dsv.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+            ID3D11RenderTargetView* brt[] = {g_rtv.Get()};
+            g_ctx->OMSetRenderTargets(1, brt, g_dsv.Get());
+            g_ctx->RSSetViewports(1, &vp);
+            render_game(vbUse);
+        }
     } else {
     UINT stride = sizeof(GVertex), off = 0;
     ID3D11Buffer* vbs[] = {g_vb.Get()};

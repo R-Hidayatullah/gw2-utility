@@ -1,0 +1,763 @@
+Ya. Dari dump struct yang kamu upload, alur file material Guild Wars 2 sudah cukup jelas.
+
+## 1. AMAT container
+
+```
+AMAT
+ ├── GRMT chunk
+ ├── DX9S chunk
+ └── BGFX chunk
+```
+
+Terlihat pada hasil parser:
+
+```
+AMAT
+  GRMT (v6)
+  BGFX (v1)
+```
+
+dan pada struct database juga ada:
+
+```
+Chunk: GRMT
+Chunk: DX9S
+Chunk: BGFX
+```
+
+ 
+
+---
+
+# 2. Fungsi masing-masing
+
+## MODL
+
+Berisi mesh.
+
+Setiap mesh memiliki
+
+```
+materialIndex
+textures
+constants[]
+```
+
+Jadi MODL membawa:
+
+* texture override
+* constant override
+* material index
+
+Bukan shader.
+
+---
+
+## GRMT
+
+Berisi informasi material umum
+
+```
+texCount
+texTokens[]
+flags
+sortOrder
+```
+
+Tidak ada shader bytecode.
+
+
+
+---
+
+## DX9S
+
+Shader DirectX9 lama.
+
+Di dalamnya ada
+
+```
+constRegisters[]
+constTokens[]
+shader bytecode
+```
+
+Ini pipeline lama.
+
+
+
+---
+
+## BGFX
+
+Ini yang dipakai renderer modern.
+
+Berisi:
+
+* shader program
+* sampler
+* constants
+* uniform
+
+Dari reverse-engineering kamu:
+
+```
+sub_140BFB500
+sub_140BFB060
+```
+
+memang membaca BGFX chunk, bukan DX9S.
+
+---
+
+# 3. Yang paling penting
+
+Di BGFX terdapat array constant.
+
+Kurang lebih seperti
+
+```
+constants[]
+
+0
+1
+2
+3
+...
+```
+
+Setiap entry hanya berisi
+
+```
+token/hash
+```
+
+Misalnya
+
+```
+0x31f2c092
+0x4db5681e
+0x4f57e8dc
+...
+```
+
+Persis yang kamu dump.
+
+---
+
+# 4. MODL juga punya constants
+
+Misalnya
+
+```
+token = 0x4db5681e
+
+value =
+[
+0.65,
+0,
+0,
+0
+]
+```
+
+atau
+
+```
+token=0xeaac26b2
+value=float4(...)
+```
+
+---
+
+# 5. Proses bind
+
+Engine tidak memakai index.
+
+Engine memakai token.
+
+Algoritmanya kira-kira
+
+```
+for every BGFX constant
+{
+    token = shader.constant.token
+
+    if MODL contains token
+        upload MODL value
+}
+```
+
+Jadi yang dicocokkan adalah
+
+```
+token/hash
+```
+
+bukan urutan.
+
+---
+
+# 6. Kenapa ada urutan?
+
+Karena GPU constant buffer harus ditulis sesuai urutan shader.
+
+Misalnya shader meminta
+
+```
+slot0 = token A
+slot1 = token B
+slot2 = token C
+slot3 = token D
+```
+
+Maka engine membuat
+
+```
+cbuffer
+
+slot0 = lookup(token A)
+
+slot1 = lookup(token B)
+
+slot2 = lookup(token C)
+
+slot3 = lookup(token D)
+```
+
+Jadi:
+
+```
+shader order
+        ↓
+lookup hash
+        ↓
+ambil value MODL
+        ↓
+copy ke slot GPU
+```
+
+Urutannya mengikuti shader, bukan MODL.
+
+---
+
+# 7. Kenapa kamu dapat MISALIGNED?
+
+Contoh
+
+```
+material-uniforms = 20
+
+constantTokens = 29
+```
+
+Artinya shader mengharapkan
+
+```
+29 constant slot
+```
+
+tetapi AMAT hanya mengenal
+
+```
+20 material constant
+```
+
+Sisanya berasal dari
+
+* object matrix
+* world matrix
+* camera
+* lighting
+* fog
+* time
+* shadow
+* dll.
+
+Jadi jelas tidak mungkin 20==29.
+
+---
+
+# 8. Rumus bind sebenarnya
+
+Yang dilakukan engine kira-kira:
+
+```cpp
+for(slot=0; slot<constantCount; slot++)
+{
+    token = shader.constantTokens[slot];
+
+    if(material.has(token))
+        GPU[slot] = material[token];
+
+    else if(renderer.has(token))
+        GPU[slot] = renderer[token];
+
+    else if(object.has(token))
+        GPU[slot] = object[token];
+
+    else
+        GPU[slot] = default;
+}
+```
+
+---
+
+## Dari semua reverse yang kamu kirim, menurutku bagian yang **belum ditemukan** justru adalah fungsi yang mengisi constant buffer GPU (`setUniform`/`setConstant`) dari daftar token tersebut. Semua tahap sebelumnya sudah terlihat:
+
+```
+MODL
+    ↓
+material constants (token → value)
+
+AMAT BGFX
+    ↓
+shader constants (slot → token)
+
+Renderer
+    ↓
+slot → lookup(token) → float4 → GPU constant buffer
+```
+
+Kalau fungsi terakhir itu ditemukan, kita bisa mereplikasi binding constant BGFX hampir 100% identik dengan engine GW2.
+
+
+Ya, menurut saya **datanya sudah hampir lengkap**. Yang belum lengkap hanyalah **runtime value** untuk uniform yang bukan berasal dari material (camera, lighting, dll).
+
+Yang perlu dibedakan ada 3 kelompok:
+
+```
+DXBC Constant Buffer (29 entries)
+        │
+        ├── Material constants (dari AMAT)
+        ├── Engine constants
+        └── Sampler
+```
+
+Dari log kamu:
+
+```
+PS constantTokens = 29
+material-uniforms = 20
+```
+
+artinya **29 bukan berarti ada 29 material parameter**.
+
+Kemungkinan besar:
+
+```
+29 total uniform
+
+≈20 berasal dari AMAT
+≈9 berasal dari engine
+```
+
+---
+
+## Yang sudah berhasil kamu identifikasi
+
+Misalnya:
+
+```
+addnscl
+inthght
+intflsc
+intflsp
+intflow
+intscru
+intscrv
+intscle
+intltst
+intmodx
+inrmpmn
+inrmpmx
+glowstr
+intfrpw
+intfrcl
+sssstr
+mtlness
+envstr
+specpwr
+specstr
+```
+
+Jumlah = **20**
+
+Semuanya mempunyai token AMAT.
+
+Contohnya
+
+```
+specstr
+↓
+
+0x9e5874b0
+↓
+
+0.8 0.6 0.31 1
+```
+
+Sudah lengkap.
+
+---
+
+## Lalu 9 sisanya apa?
+
+Biasanya shader GW2 mempunyai constant seperti
+
+```
+World
+
+View
+
+Proj
+
+WorldViewProj
+
+CameraPos
+
+SunDir
+
+Fog
+
+Time
+
+Shadow
+```
+
+atau
+
+```
+BoneMatrices
+
+LightColor
+
+Exposure
+
+Gamma
+```
+
+yang **tidak pernah ada di AMAT**.
+
+Makanya di log muncul
+
+```
+0x976c91a3 absent
+0xad9f0e93 absent
+0x39d0c329 absent
+```
+
+Itu kemungkinan besar adalah uniform engine.
+
+---
+
+## Kenapa saya yakin?
+
+Karena di `sub_140BFB500`
+
+dia memisahkan dua jalur.
+
+Material
+
+```
+token
+↓
+
+AMAT
+↓
+
+binding
+```
+
+Engine
+
+```
+uniform name
+
+↓
+
+special handler
+
+↓
+
+tidak ada token AMAT
+```
+
+Kalau semua 29 harus ada di AMAT, shader tidak akan bisa memakai
+
+```
+ViewProj
+CameraPos
+Time
+LightDir
+```
+
+yang jelas berubah setiap frame.
+
+---
+
+## Dari log kamu
+
+```
+constantTokens = 29
+
+material-uniforms = 20
+```
+
+Berarti
+
+```
+29
+-
+20
+=
+9
+```
+
+sekitar **9 uniform bukan material**.
+
+---
+
+## Data yang sudah kamu punya
+
+✔ nama uniform
+
+```
+specstr
+```
+
+✔ token
+
+```
+0x9e5874b0
+```
+
+✔ value
+
+```
+0.8 0.6 0.31 1
+```
+
+✔ offset dalam constant buffer
+
+```
+@480
+```
+
+✔ urutan binding
+
+```
+index 19
+```
+
+✔ semantic id
+
+(dari `sub_140A67DD0()`)
+
+✔ handle BGFX
+
+(dibuat oleh `sub_140B65B20()`)
+
+---
+
+Jadi untuk **material system**, menurut saya kamu sudah memiliki hampir seluruh informasi yang diperlukan untuk mereplikasi binding:
+
+```
+AMAT
+    │
+(token,value)
+    │
+    ▼
+lookup token
+    │
+    ▼
+uniform index
+    │
+    ▼
+UniformHandle
+    │
+    ▼
+bgfx::setUniform()
+```
+
+Yang tersisa adalah mengidentifikasi **9 uniform engine** tersebut dan di mana nilainya diisi setiap frame (kamera, matriks, pencahayaan, waktu, shadow, dsb.). Setelah itu, kamu akan memiliki seluruh pipeline constant binding seperti yang dilakukan engine GW2.
+
+
+
+Benar, **kalau tujuanmu adalah mereplikasi renderer GW2, kemungkinan besar kamu tidak perlu menghitung hash sama sekali.**
+
+Dari hasil reverse yang kamu kirim, hash sudah dihitung **saat material di-load**, bukan saat render.
+
+Alurnya:
+
+```
+AMAT (GRMT)
+    │
+    ├── token = 0xeaac26b2
+    ├── value = {0.341,0.576,0.227,1}
+    │
+    ▼
+sub_140BFB500()
+
+    token
+      │
+      ▼
+semantic id (sub_140A67DD0)
+      │
+      ▼
+UniformHandle bgfx
+
+(binding table selesai)
+```
+
+Lalu saat render:
+
+```
+for(binding : bindings)
+{
+    value = material[token];
+
+    bgfx::setUniform(binding.handle, value);
+}
+```
+
+Tidak ada hash lagi di sini.
+
+---
+
+## Hash yang kamu lihat berasal dari mana?
+
+Contohnya
+
+```
+0xeaac26b2
+0x9e5874b0
+0x4db5681e
+```
+
+**Itu bukan hash yang dibuat dari nama uniform shader.**
+
+Itu adalah **ID/token yang sudah disimpan di file GRMT/AMAT**.
+
+Lihat `sub_140BFB500`:
+
+```cpp
+v19 = *(_DWORD *)(v9 + *(_QWORD *)(a2 + 16));
+```
+
+Dia membaca token langsung dari data material.
+
+Kemudian
+
+```cpp
+sub_140A67DD0(v19)
+```
+
+melakukan lookup:
+
+```
+token
+    ↓
+semantic id
+```
+
+Bukan
+
+```
+"specstr"
+    ↓ hash ↓
+0x9e5874b0
+```
+
+---
+
+## Jadi fungsi `sub_140A67DD0` sebenarnya apa?
+
+Dia hanya tabel lookup.
+
+Misalnya
+
+```
+0x4DB5681E -> 0x5B
+0x9E5874B0 -> 0x49
+0xEAAC26B2 -> 0x70
+```
+
+Tidak ada algoritma hash di situ.
+
+---
+
+## Kapan hash dihitung?
+
+Kemungkinan besar hanya:
+
+* saat asset dibangun (ArenaNet asset compiler), atau
+* saat GRMT dibuat.
+
+Runtime game **tidak menghitung ulang**.
+
+Ia tinggal membaca
+
+```
+GRMT
+
+token
+↓
+
+lookup
+
+↓
+
+semantic
+
+↓
+
+UniformHandle
+```
+
+---
+
+## Kalau membuat renderer sendiri
+
+Yang paling sederhana bahkan tidak perlu semantic.
+
+Kamu bisa langsung membuat map:
+
+```cpp
+std::unordered_map<uint32_t, bgfx::UniformHandle> materialBindings;
+```
+
+Misalnya
+
+```cpp
+materialBindings[0x9e5874b0] = u_specstr;
+materialBindings[0xeaac26b2] = u_specpwr;
+materialBindings[0x572d58f1] = u_mtlness;
+...
+```
+
+Kemudian
+
+```cpp
+for (auto& c : amat.constants)
+{
+    auto it = materialBindings.find(c.token);
+
+    if (it != materialBindings.end())
+        bgfx::setUniform(it->second, c.value);
+}
+```
+
+Tidak perlu menghitung hash sama sekali.
+
+---
+
+### Yang masih menjadi pertanyaan
+
+Yang menarik justru **bagaimana `u_specstr` dipasangkan dengan token `0x9e5874b0`**.
+
+Dari fungsi yang kamu kirim, saya belum melihat langkah itu secara eksplisit. `sub_140A67DD0()` hanya memetakan **token → semantic ID**, sedangkan `sub_140B65EC0()` mengambil informasi uniform BGFX. Masih ada satu langkah yang menghubungkan **semantic ID uniform shader** dengan **semantic ID dari token AMAT**.
+
+Kalau kita menemukan fungsi itu, seluruh mekanisme binding material GW2 akan benar-benar lengkap tanpa perlu mengetahui algoritma hash sama sekali.
+
+

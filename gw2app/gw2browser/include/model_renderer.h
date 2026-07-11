@@ -56,6 +56,12 @@ bool layer_visible(int layer);
 
 void set_mode(RenderMode mode);
 
+// Toggles the reconstructed deferred light pre-pass used by GameShader mode (real
+// directional shading through the game's DXBC materials). Off = flat light-buffer
+// stand-in (the old look). Takes effect on the next render; no model reload needed.
+void set_lightprepass(bool on);
+bool lightprepass();
+
 // Toggles the bind-pose skeleton overlay (bones drawn as lines + joint crosses,
 // on top of the mesh). No effect on models without an inline rig.
 void set_show_skeleton(bool show);

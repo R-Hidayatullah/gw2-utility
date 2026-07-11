@@ -10,16 +10,21 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <unordered_map>
+#include <vector>
 #include <windowsx.h>
 
 #include "d3d_renderer.h"
+#include "audio_player.h"
 #include "entry_extractor.h"
 #include "gw2dat.h"
 #include "hexview.h"
+#include "index_db.h"
 #include "info_panel.h"
 #include "mft_listview.h"
 #include "model_renderer.h"
 #include "splitter.h"
+#include "strs_keys.h"
 #include "struct_template.h"
 
 namespace {
@@ -29,7 +34,7 @@ constexpr wchar_t kPreviewClassName[] = L"Gw2PreviewSurface";
 constexpr wchar_t kModelClassName[] = L"Gw2ModelSurface";
 
 constexpr int kSplitterThickness = 5;
-constexpr int kSearchBarHeight = 64;
+constexpr int kSearchBarHeight = 92;
 constexpr int kMinPaneSize = 80;
 constexpr int kTabHeight = 26;
 constexpr int kToolbarHeight = 28;
@@ -40,6 +45,8 @@ constexpr UINT_PTR ID_FILE_EXPORT_COMPRESSED = 1002;
 constexpr UINT_PTR ID_FILE_EXPORT_DECOMPRESSED = 1003;
 constexpr UINT_PTR ID_FILE_EXIT = 1004;
 constexpr UINT_PTR ID_FILE_LOAD_TEMPLATE = 1005;
+constexpr UINT_PTR ID_FILE_LOAD_KEYS = 1006;
+constexpr UINT_PTR ID_FILE_OPEN_INDEX = 1007;
 constexpr int ID_LISTVIEW = 2001;
 constexpr int ID_HEX_BEFORE = 2002;
 constexpr int ID_HEX_AFTER = 2003;
@@ -51,6 +58,8 @@ constexpr int ID_SEARCH_EDIT = 2020;
 constexpr int ID_SEARCH_FILEID_CHECK = 2021;
 constexpr UINT_PTR ID_SEARCH_BUTTON = 2022;
 constexpr UINT_PTR ID_CLEAR_BUTTON = 2023;
+constexpr int ID_FILTER_TYPE = 2024;
+constexpr int ID_FILTER_CONTAINER = 2025;
 constexpr UINT_PTR ID_ZOOM_IN = 2030;
 constexpr UINT_PTR ID_ZOOM_OUT = 2031;
 constexpr UINT_PTR ID_ROTATE = 2032;
@@ -67,6 +76,11 @@ constexpr UINT_PTR ID_LAYER_PROP = 2052;
 constexpr UINT_PTR ID_LAYER_ZONE = 2053;
 constexpr UINT_PTR ID_LAYER_COLL = 2054;
 constexpr UINT_PTR ID_TEX_FULLRES = 2055;
+constexpr UINT_PTR ID_AUDIO_PLAY = 2056;
+constexpr UINT_PTR ID_AUDIO_STOP = 2057;
+constexpr UINT_PTR ID_AUDIO_COMBO = 2058;
+constexpr UINT_PTR ID_CONTENT_LIST = 2059;
+constexpr UINT_PTR ID_LIGHT_PREPASS = 2060;
 constexpr UINT_PTR TIMER_ANIM = 1;
 constexpr int ID_STATUS_LABEL = 2040;
 constexpr int ID_PROGRESS = 2041;
@@ -94,6 +108,13 @@ struct AppState {
     ExtractedEntry current_entry;
     uint32_t current_mft_index = 0;
     bool dat_loaded = false;
+
+    // Index-DB navigation (Stage 2). When an index is loaded, the list gains
+    // Type/Container columns + filters. index_meta maps base_id -> interned
+    // (typeIdx<<16 | contIdx) so 800k rows cost ~3MB, not per-cell SQL.
+    bool index_loaded = false;
+    std::vector<std::string> idx_type_names, idx_cont_names;
+    std::unordered_map<uint32_t, uint32_t> index_meta;
     bool has_loaded_entry = false; // current_entry reflects a *completed* extraction, safe to export
 
     // Bumped on every new selection (and on opening a new archive); a
@@ -106,6 +127,8 @@ struct AppState {
     HWND hwnd_status_label = nullptr;
     HWND hwnd_progress = nullptr;
     HWND hwnd_search_edit = nullptr;
+    HWND hwnd_filter_type = nullptr;       // index-mode type filter combo
+    HWND hwnd_filter_container = nullptr;  // index-mode container filter combo
     HWND hwnd_search_fileid_check = nullptr;
     HWND hwnd_search_button = nullptr;
     HWND hwnd_clear_button = nullptr;
@@ -114,6 +137,9 @@ struct AppState {
     HWND hwnd_preview = nullptr;      // image D3D surface (gw2gfx)
     HWND hwnd_model = nullptr;        // model D3D surface (gw2m3d)
     HWND hwnd_text_preview = nullptr; // text / strs read-only edit
+    HWND hwnd_content_list = nullptr; // cntc referenced-asset list (kind == Content)
+    ExtractedEntry content_sub;       // the asset currently selected in the content list
+    bool content_sub_loaded = false;  // content_sub holds a valid loaded asset
     HWND hwnd_info = nullptr;
     HWND hwnd_hex_before = nullptr;
     HWND hwnd_hex_after = nullptr;
@@ -132,6 +158,10 @@ struct AppState {
     HWND hwnd_anim_combo = nullptr;
     HWND hwnd_anim_play = nullptr;
     HWND hwnd_tex_fullres = nullptr;
+    HWND hwnd_light_toggle = nullptr;
+    HWND hwnd_audio_play = nullptr;
+    HWND hwnd_audio_stop = nullptr;
+    HWND hwnd_audio_combo = nullptr; // sound selector for multi-sound banks
     HWND hwnd_layer_prop = nullptr;
     HWND hwnd_layer_zone = nullptr;
     HWND hwnd_layer_coll = nullptr;
@@ -195,6 +225,12 @@ void layout_children(int client_w, int client_h) {
     MoveWindow(g_app->hwnd_search_fileid_check, 6, 32, std::max(0, list_w - 12 - 130), 22, TRUE);
     MoveWindow(g_app->hwnd_search_button, std::max(6, list_w - 122), 32, 55, 22, TRUE);
     MoveWindow(g_app->hwnd_clear_button, std::max(6, list_w - 63), 32, 55, 22, TRUE);
+    // Filter combos row (index mode): Type | Container, split across the width.
+    {
+        int cw = std::max(40, (list_w - 12 - 6) / 2);
+        MoveWindow(g_app->hwnd_filter_type, 6, 60, cw, 200, TRUE);
+        MoveWindow(g_app->hwnd_filter_container, 6 + cw + 6, 60, cw, 200, TRUE);
+    }
     MoveWindow(g_app->hwnd_list, 0, kSearchBarHeight, list_w, std::max(0, usable_h - kSearchBarHeight), TRUE);
 
     int x = list_w;
@@ -217,11 +253,18 @@ void layout_children(int client_w, int client_h) {
     // read-only text control (text/strs, and the fallback for anything else).
     bool show_preview = tab == MiddleTab::Preview;
     PreviewKind pk = g_app->has_loaded_entry ? g_app->current_entry.kind : PreviewKind::None;
-    bool show_image = show_preview && pk == PreviewKind::Image;
-    bool show_map = show_preview && pk == PreviewKind::Map && g_app->current_entry.map != nullptr &&
+    // cntc content browser: a left-hand asset list; the right pane shows the clicked
+    // sub-asset, so its type ("ek") drives which surface is shown on the right.
+    bool content_mode = show_preview && pk == PreviewKind::Content;
+    PreviewKind ek = content_mode ? (g_app->content_sub_loaded ? g_app->content_sub.kind : PreviewKind::None) : pk;
+    const ExtractedEntry& se = content_mode ? g_app->content_sub : g_app->current_entry;
+    bool show_image = show_preview && ek == PreviewKind::Image;
+    bool show_map = show_preview && !content_mode && ek == PreviewKind::Map && g_app->current_entry.map != nullptr &&
                     !g_app->current_entry.map->instances.empty();
-    bool show_model = show_preview && ((pk == PreviewKind::Model && g_app->current_entry.model != nullptr) || show_map);
-    bool show_text = show_preview && !show_image && !show_model;
+    bool show_model = show_preview && ((ek == PreviewKind::Model && se.model != nullptr) || show_map);
+    bool show_audio = show_preview && ek == PreviewKind::Audio;
+    bool show_text = show_preview && !show_image && !show_model && !show_audio;
+    ShowWindow(g_app->hwnd_content_list, content_mode ? SW_SHOW : SW_HIDE);
 
     ShowWindow(g_app->hwnd_preview, show_image ? SW_SHOW : SW_HIDE);
     ShowWindow(g_app->hwnd_model, show_model ? SW_SHOW : SW_HIDE);
@@ -241,6 +284,11 @@ void layout_children(int client_w, int client_h) {
     ShowWindow(g_app->hwnd_anim_combo, show_anim ? SW_SHOW : SW_HIDE);
     ShowWindow(g_app->hwnd_anim_play, show_anim ? SW_SHOW : SW_HIDE);
     ShowWindow(g_app->hwnd_tex_fullres, (show_model && !show_map) ? SW_SHOW : SW_HIDE);
+    ShowWindow(g_app->hwnd_light_toggle, (show_model && !show_map) ? SW_SHOW : SW_HIDE);
+    bool audio_multi = show_audio && se.audio_clips.size() > 1;
+    ShowWindow(g_app->hwnd_audio_play, show_audio ? SW_SHOW : SW_HIDE);
+    ShowWindow(g_app->hwnd_audio_stop, show_audio ? SW_SHOW : SW_HIDE);
+    ShowWindow(g_app->hwnd_audio_combo, audio_multi ? SW_SHOW : SW_HIDE);
     ShowWindow(g_app->hwnd_layer_prop, show_map ? SW_SHOW : SW_HIDE);
     ShowWindow(g_app->hwnd_layer_zone, show_map ? SW_SHOW : SW_HIDE);
     ShowWindow(g_app->hwnd_layer_coll, show_map ? SW_SHOW : SW_HIDE);
@@ -253,8 +301,14 @@ void layout_children(int client_w, int client_h) {
         constexpr int kButtonW = 70;
         constexpr int kButtonH = 22;
         constexpr int kGap = 6;
+        // In cntc content-browser mode the left column is the asset list; the preview
+        // surfaces occupy the remaining width to its right.
+        int clist_w = content_mode ? 300 : 0;
+        if (content_mode) MoveWindow(g_app->hwnd_content_list, middle_x, content_y, clist_w, content_h, TRUE);
+        int pane_x = middle_x + (content_mode ? clist_w + kGap : 0);
+        int pane_w = middle_w - (content_mode ? clist_w + kGap : 0);
         auto place_button = [&](HWND h, int slot) {
-            MoveWindow(h, middle_x + kGap + (kButtonW + kGap) * slot, content_y + 3, kButtonW, kButtonH, TRUE);
+            MoveWindow(h, pane_x + kGap + (kButtonW + kGap) * slot, content_y + 3, kButtonW, kButtonH, TRUE);
         };
         int surface_y = content_y + kToolbarHeight;
         int surface_h = std::max(0, content_h - kToolbarHeight);
@@ -263,8 +317,8 @@ void layout_children(int client_w, int client_h) {
             place_button(g_app->hwnd_zoom_out, 1);
             place_button(g_app->hwnd_rotate, 2);
             place_button(g_app->hwnd_fit, 3);
-            MoveWindow(g_app->hwnd_preview, middle_x, surface_y, middle_w, surface_h, TRUE);
-            gw2gfx::on_resize(middle_w, surface_h);
+            MoveWindow(g_app->hwnd_preview, pane_x, surface_y, pane_w, surface_h, TRUE);
+            gw2gfx::on_resize(pane_w, surface_h);
             // A DXGI_SWAP_EFFECT_DISCARD swapchain otherwise keeps showing its
             // last-Presented frame stretched into the new size until the next
             // real Present() -- force one immediately so resizes never look stale.
@@ -285,18 +339,27 @@ void layout_children(int client_w, int client_h) {
                 place_button(g_app->hwnd_mode_shader, 3);
                 place_button(g_app->hwnd_model_reset, 4);
                 place_button(g_app->hwnd_skel_toggle, 5);
-                int anim_x = middle_x + kGap + (kButtonW + kGap) * 6;
+                int anim_x = pane_x + kGap + (kButtonW + kGap) * 6;
                 MoveWindow(g_app->hwnd_anim_combo, anim_x, content_y + 3, 150, 200, TRUE);
                 MoveWindow(g_app->hwnd_anim_play, anim_x + 156, content_y + 3, 56, kButtonH, TRUE);
                 MoveWindow(g_app->hwnd_tex_fullres, anim_x + 156 + 56 + kGap, content_y + 3, 90, kButtonH, TRUE);
+                MoveWindow(g_app->hwnd_light_toggle, anim_x + 156 + 56 + kGap + 90 + kGap, content_y + 3, 70, kButtonH, TRUE);
             }
-            MoveWindow(g_app->hwnd_model, middle_x, surface_y, middle_w, surface_h, TRUE);
-            gw2m3d::on_resize(middle_w, surface_h);
+            MoveWindow(g_app->hwnd_model, pane_x, surface_y, pane_w, surface_h, TRUE);
+            gw2m3d::on_resize(pane_w, surface_h);
             gw2m3d::render();
+        } else if (show_audio) {
+            // Audio: a Play/Stop toolbar row (+ a sound selector for banks) above the info text.
+            place_button(g_app->hwnd_audio_play, 0);
+            place_button(g_app->hwnd_audio_stop, 1);
+            if (se.audio_clips.size() > 1) {
+                int cx = pane_x + kGap + (kButtonW + kGap) * 2;
+                MoveWindow(g_app->hwnd_audio_combo, cx, content_y + 3, 200, 300, TRUE);
+            }
+            MoveWindow(g_app->hwnd_text_preview, pane_x, surface_y, pane_w, surface_h, TRUE);
         } else {
-            // text / strs / unrecognized / model-without-template: full-height
-            // text control, no toolbar row.
-            MoveWindow(g_app->hwnd_text_preview, middle_x, content_y, middle_w, content_h, TRUE);
+            // text / strs / unrecognized / content summary: full-height text control.
+            MoveWindow(g_app->hwnd_text_preview, pane_x, content_y, pane_w, content_h, TRUE);
         }
     }
 
@@ -394,6 +457,94 @@ void reset_model_view() {
     InvalidateRect(g_app->hwnd_model, nullptr, FALSE);
 }
 
+// Index of the audio sound currently selected (0 for single-clip entries).
+// The entry whose audio is active: the clicked content sub-asset in cntc browser mode,
+// otherwise the main selected entry.
+ExtractedEntry& active_audio_entry() {
+    if (g_app->has_loaded_entry && g_app->current_entry.kind == PreviewKind::Content && g_app->content_sub_loaded)
+        return g_app->content_sub;
+    return g_app->current_entry;
+}
+
+int audio_selected_index() {
+    if (active_audio_entry().audio_clips.size() <= 1) return 0;
+    int s = static_cast<int>(SendMessageW(g_app->hwnd_audio_combo, CB_GETCURSEL, 0, 0));
+    return s < 0 ? 0 : s;
+}
+
+// Decode + show details for the selected audio sound in the text-preview surface.
+void update_audio_info(int sel) {
+    const auto& clips = active_audio_entry().audio_clips;
+    if (sel < 0 || sel >= static_cast<int>(clips.size())) return;
+    const auto& c = clips[sel];
+    gw2snd::ClipInfo info = gw2snd::probe(c.data.data(), c.data.size());
+    wchar_t buf[512];
+    if (info.ok) {
+        swprintf(buf, 512,
+                 L"Audio — %hs%ls\r\n\r\nSound %d of %zu\r\n%u Hz · %u channel%ls · %.2f s\r\n%zu bytes\r\n\r\nPress  ▶ Play  to listen.",
+                 c.codec.c_str(), clips.size() > 1 ? L"  (bank)" : L"", sel + 1, clips.size(),
+                 info.sampleRate, info.channels, info.channels == 1 ? L"" : L"s", info.seconds, c.data.size());
+    } else {
+        swprintf(buf, 512, L"Audio — %hs  (%zu bytes)\r\n\r\nCould not decode this sound for playback.",
+                 c.codec.c_str(), c.data.size());
+    }
+    SetWindowTextW(g_app->hwnd_text_preview, buf);
+}
+
+// Render the clicked cntc sub-asset into the right-pane surfaces (texture / model /
+// audio info / text), reusing the existing image/model/text controls.
+void render_content_sub() {
+    ExtractedEntry& e = g_app->content_sub;
+    gw2gfx::clear_texture();
+    gw2m3d::clear_model();
+    if (e.is_image && !e.preview_pixels.empty()) {
+        gw2gfx::set_texture(e.preview_dxgi_format, e.preview_width, e.preview_height,
+                            e.preview_pitch, e.preview_pixels.data());
+    } else if (e.kind == PreviewKind::Model && e.model) {
+        gw2m3d::set_model(*e.model);
+        gw2m3d::set_mode(gw2m3d::RenderMode::Full);
+        gw2m3d::set_show_skeleton(false);
+    } else if (e.kind == PreviewKind::Audio && !e.audio_clips.empty()) {
+        SendMessageW(g_app->hwnd_audio_combo, CB_RESETCONTENT, 0, 0);
+        if (e.audio_clips.size() > 1) {
+            for (size_t i = 0; i < e.audio_clips.size(); ++i) {
+                wchar_t it[48]; swprintf(it, 48, L"Sound %zu / %zu", i + 1, e.audio_clips.size());
+                SendMessageW(g_app->hwnd_audio_combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(it));
+            }
+            SendMessageW(g_app->hwnd_audio_combo, CB_SETCURSEL, 0, 0);
+        }
+        update_audio_info(0);
+    } else {
+        SetWindowTextW(g_app->hwnd_text_preview,
+                       e.text_preview.empty() ? L"(no visual/audio preview for this asset type)"
+                                              : e.text_preview.c_str());
+    }
+}
+
+// Load the cntc-referenced asset at list index `idx` and show it on the right.
+void load_content_asset(int idx) {
+    const auto& ids = g_app->current_entry.content_asset_ids;
+    if (idx < 0 || idx >= static_cast<int>(ids.size())) return;
+    gw2snd::stop();
+    g_app->content_sub = ExtractedEntry{};
+    g_app->content_sub_loaded = false;
+    uint32_t base = get_by_base_id(g_app->data_gw2, ids[idx]);
+    if (base == 0 || base - 1 >= g_app->data_gw2.mft_data_list.size()) {
+        SetWindowTextW(g_app->hwnd_text_preview, L"(referenced asset is not present in this dat build)");
+    } else {
+        try {
+            g_app->content_sub = extract_entry(g_app->data_gw2, base - 1);
+            g_app->content_sub_loaded = true;
+            render_content_sub();
+        } catch (const std::exception&) {
+            SetWindowTextW(g_app->hwnd_text_preview, L"(failed to load this asset)");
+        }
+    }
+    relayout();
+    InvalidateRect(g_app->hwnd_preview, nullptr, FALSE);
+    InvalidateRect(g_app->hwnd_model, nullptr, FALSE);
+}
+
 void update_preview_texture() {
     if (!g_app->current_entry.is_image || g_app->current_entry.preview_pixels.empty()) {
         gw2gfx::clear_texture();
@@ -417,6 +568,8 @@ void apply_extracted_entry(uint32_t mft_index, ExtractedEntry&& entry) {
     if (g_app == nullptr) {
         return;
     }
+
+    gw2snd::stop(); // stop any audio from the previously selected entry
 
     g_app->current_entry = std::move(entry);
     g_app->has_loaded_entry = true;
@@ -505,11 +658,60 @@ void apply_extracted_entry(uint32_t mft_index, ExtractedEntry&& entry) {
         }
         break;
     case PreviewKind::Text:
-    case PreviewKind::Strs:
         gw2gfx::clear_texture();
         gw2m3d::clear_model();
         SetWindowTextW(g_app->hwnd_text_preview, g_app->current_entry.text_preview.c_str());
         break;
+    case PreviewKind::Strs: {
+        gw2gfx::clear_texture();
+        gw2m3d::clear_model();
+        // When string keys are loaded, re-decode with RC4 so packed records
+        // become real text; otherwise fall back to the raw listing.
+        const std::wstring* txt = &g_app->current_entry.text_preview;
+        std::wstring decrypted;
+        if (gw2skeys::keys_ready()) {
+            std::vector<uint32_t> fids = get_by_file_id(g_app->data_gw2, mft_index + 1);
+            long long base = gw2skeys::base_for_fileids(fids);
+            const auto& dec = g_app->current_entry.decompressed;
+            decrypted = gw2skeys::decode(dec.data(), dec.size(), base);
+            txt = &decrypted;
+        }
+        SetWindowTextW(g_app->hwnd_text_preview, txt->c_str());
+        break;
+    }
+    case PreviewKind::Audio: {
+        gw2gfx::clear_texture();
+        gw2m3d::clear_model();
+        const auto& clips = g_app->current_entry.audio_clips;
+        SendMessageW(g_app->hwnd_audio_combo, CB_RESETCONTENT, 0, 0);
+        if (clips.size() > 1) {
+            for (size_t i = 0; i < clips.size(); ++i) {
+                wchar_t item[64];
+                swprintf(item, 64, L"Sound %zu / %zu", i + 1, clips.size());
+                SendMessageW(g_app->hwnd_audio_combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(item));
+            }
+            SendMessageW(g_app->hwnd_audio_combo, CB_SETCURSEL, 0, 0);
+        }
+        update_audio_info(0);
+        break;
+    }
+    case PreviewKind::Content: {
+        gw2gfx::clear_texture();
+        gw2m3d::clear_model();
+        g_app->content_sub = ExtractedEntry{};
+        g_app->content_sub_loaded = false;
+        // Populate the referenced-asset list; the summary shows until one is clicked.
+        const auto& ids = g_app->current_entry.content_asset_ids;
+        SendMessageW(g_app->hwnd_content_list, WM_SETREDRAW, FALSE, 0);
+        SendMessageW(g_app->hwnd_content_list, LB_RESETCONTENT, 0, 0);
+        for (uint32_t fid : ids) {
+            wchar_t item[32]; swprintf(item, 32, L"fileId %u", fid);
+            SendMessageW(g_app->hwnd_content_list, LB_ADDSTRING, 0, reinterpret_cast<LPARAM>(item));
+        }
+        SendMessageW(g_app->hwnd_content_list, WM_SETREDRAW, TRUE, 0);
+        SetWindowTextW(g_app->hwnd_text_preview, g_app->current_entry.text_preview.c_str());
+        break;
+    }
     default:
         gw2gfx::clear_texture();
         gw2m3d::clear_model();
@@ -580,31 +782,16 @@ void on_entry_selected(uint32_t mft_index) {
     }).detach();
 }
 
-void do_open_file(HWND hwnd) {
-    wchar_t path[MAX_PATH] = L"";
-
-    OPENFILENAMEW ofn{};
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = hwnd;
-    ofn.lpstrFilter = L"Guild Wars 2 Archive (*.dat)\0*.dat\0All Files\0*.*\0";
-    ofn.lpstrFile = path;
-    ofn.nMaxFile = MAX_PATH;
-    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
-
-    if (!GetOpenFileNameW(&ofn)) {
-        return;
-    }
-
+// Loads a .dat by path and rebinds the whole UI to it. Reusable by File->Open
+// and by the index-DB opener (which auto-loads the archive the index references).
+bool load_dat_path(HWND hwnd, const wchar_t* path) {
     HCURSOR old_cursor = SetCursor(LoadCursorW(nullptr, IDC_WAIT));
-
+    bool ok = false;
     try {
         Gw2Dat fresh;
         load_dat_file(fresh, to_ansi(path));
 
-        // Invalidate any extraction still in flight from the previous
-        // archive -- read_entry_bytes() captured its own path/copy of the
-        // MftData it needs, so it'll finish safely regardless, but its
-        // result must never be applied against the newly loaded archive.
+        // Invalidate any extraction still in flight from the previous archive.
         ++g_app->request_generation;
         show_loading(false, 0);
 
@@ -627,11 +814,25 @@ void do_open_file(HWND hwnd) {
         wchar_t title[512];
         swprintf(title, 512, L"gw2browser - %ls (%zu assets)", path, g_app->data_gw2.mft_base_id_data_list.size());
         SetWindowTextW(hwnd, title);
+        ok = true;
     } catch (const std::exception& e) {
         MessageBoxA(hwnd, e.what(), "Failed to load .dat", MB_ICONERROR);
     }
-
     SetCursor(old_cursor);
+    return ok;
+}
+
+void do_open_file(HWND hwnd) {
+    wchar_t path[MAX_PATH] = L"";
+    OPENFILENAMEW ofn{};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = L"Guild Wars 2 Archive (*.dat)\0*.dat\0All Files\0*.*\0";
+    ofn.lpstrFile = path;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+    if (!GetOpenFileNameW(&ofn)) return;
+    load_dat_path(hwnd, path);
 }
 
 void do_load_template(HWND hwnd) {
@@ -659,6 +860,58 @@ void do_load_template(HWND hwnd) {
     if (g_app->dat_loaded && g_app->has_loaded_entry && g_app->current_entry.kind == PreviewKind::Model &&
         !g_app->current_entry.model) {
         on_entry_selected(g_app->current_mft_index);
+    }
+}
+
+// Loads a string-key CSV (textId,key8_hex); also pulls a sibling strs_textbase.csv
+// (fileId,baseTextId). With both, packed strs records decrypt in the preview.
+void load_keys_from(const std::wstring& csv_path) {
+    gw2skeys::load_keys(csv_path);
+    std::wstring dir = csv_path;
+    size_t slash = dir.find_last_of(L"\\/");
+    dir = (slash == std::wstring::npos) ? L"" : dir.substr(0, slash + 1);
+    gw2skeys::load_textbase(dir + L"strs_textbase.csv");
+    if (g_app && g_app->hwnd_status_label) {
+        wchar_t msg[192];
+        swprintf(msg, 192, L"String keys loaded: %zu  (textbase: %s)",
+                 gw2skeys::key_count(), gw2skeys::textbase_ready() ? L"ok" : L"MISSING strs_textbase.csv");
+        SetWindowTextW(g_app->hwnd_status_label, msg);
+    }
+    if (g_app && g_app->dat_loaded && g_app->has_loaded_entry &&
+        g_app->current_entry.kind == PreviewKind::Strs) {
+        on_entry_selected(g_app->current_mft_index);
+    }
+}
+
+void do_load_keys(HWND hwnd) {
+    wchar_t path[MAX_PATH] = L"";
+    OPENFILENAMEW ofn{};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = L"String keys (*.csv)\0*.csv\0All Files\0*.*\0";
+    ofn.lpstrFile = path;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+    if (!GetOpenFileNameW(&ofn)) return;
+    load_keys_from(path);
+}
+
+// Best-effort: pick up textkeys.csv + strs_textbase.csv from the exe dir or its
+// parent (gw2app) at startup so strs decrypt "just works" if they're present.
+void try_autoload_keys() {
+    wchar_t exe[MAX_PATH] = L"";
+    GetModuleFileNameW(nullptr, exe, MAX_PATH);
+    std::wstring dir(exe);
+    size_t s = dir.find_last_of(L"\\/");
+    dir = (s == std::wstring::npos) ? L"" : dir.substr(0, s + 1);
+    const wchar_t* rel[] = {L"", L"..\\"};
+    for (const wchar_t* r : rel) {
+        std::wstring base = dir + r;
+        if (GetFileAttributesW((base + L"textkeys.csv").c_str()) != INVALID_FILE_ATTRIBUTES) {
+            gw2skeys::load_keys(base + L"textkeys.csv");
+            gw2skeys::load_textbase(base + L"strs_textbase.csv");
+            return;
+        }
     }
 }
 
@@ -693,45 +946,167 @@ void do_export(HWND hwnd, bool export_compressed) {
     out.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(data.size()));
 }
 
-void do_search() {
-    if (!g_app->dat_loaded) {
-        return;
-    }
+// The selected combo item's text ("" for item 0 = "(all)").
+std::string combo_sel(HWND combo) {
+    int i = static_cast<int>(SendMessageW(combo, CB_GETCURSEL, 0, 0));
+    if (i <= 0) return {};
+    wchar_t w[64] = L"";
+    SendMessageW(combo, CB_GETLBTEXT, i, reinterpret_cast<LPARAM>(w));
+    std::string s;
+    for (wchar_t c : std::wstring(w)) s.push_back(static_cast<char>(c));  // fourccs/types are ASCII
+    return s;
+}
+
+// Reads the id box + Type/Container combos and refilters the list. In INDEX
+// mode the filter is a fast SQL query (covers type/container); in PARSE mode
+// only the id box applies (type/container need an index).
+void apply_filters() {
+    if (!g_app->dat_loaded && !g_app->index_loaded) return;
 
     wchar_t buf[32] = L"";
     GetWindowTextW(g_app->hwnd_search_edit, buf, 32);
-    if (buf[0] == L'\0') {
-        gw2mft::set_filter(g_app->hwnd_list, {});
+    bool id_active = buf[0] != L'\0';
+    uint32_t id_val = id_active ? static_cast<uint32_t>(wcstoul(buf, nullptr, 10)) : 0;
+    bool by_file_id = SendMessageW(g_app->hwnd_search_fileid_check, BM_GETCHECK, 0, 0) == BST_CHECKED;
+
+    if (g_app->index_loaded) {
+        std::string type = combo_sel(g_app->hwnd_filter_type);
+        std::string cont = combo_sel(g_app->hwnd_filter_container);
+        if (!id_active && type.empty() && cont.empty()) {
+            gw2mft::set_filter(g_app->hwnd_list, {});  // no filter -> show every asset
+            SetWindowTextW(g_app->hwnd_status_label, L"Index: showing all entries");
+            return;
+        }
+        std::vector<uint32_t> ids = gw2idx::query_base_ids(type, cont, id_val, by_file_id, id_active, 300000);
+        gw2mft::set_filter(g_app->hwnd_list, ids);
+        wchar_t st[128];
+        swprintf(st, 128, L"Index filter -> %zu entries", ids.size());
+        SetWindowTextW(g_app->hwnd_status_label, st);
         return;
     }
 
-    uint32_t value = static_cast<uint32_t>(wcstoul(buf, nullptr, 10));
-    bool by_file_id = SendMessageW(g_app->hwnd_search_fileid_check, BM_GETCHECK, 0, 0) == BST_CHECKED;
-
+    // Parse mode: id search only (no type/container without an index).
+    if (!id_active) { gw2mft::set_filter(g_app->hwnd_list, {}); return; }
     std::vector<uint32_t> base_ids;
     if (by_file_id) {
-        for (uint32_t file_id : search_by_file_id(g_app->data_gw2, value)) {
+        for (uint32_t file_id : search_by_file_id(g_app->data_gw2, id_val)) {
             uint32_t base_id = get_by_base_id(g_app->data_gw2, file_id);
-            if (base_id != 0) {
-                base_ids.push_back(base_id);
-            }
+            if (base_id != 0) base_ids.push_back(base_id);
         }
     } else {
-        base_ids = search_by_base_id(g_app->data_gw2, value);
+        base_ids = search_by_base_id(g_app->data_gw2, id_val);
     }
-
     gw2mft::set_filter(g_app->hwnd_list, base_ids);
 }
 
+void do_search() { apply_filters(); }
+
 void do_clear_search() {
     SetWindowTextW(g_app->hwnd_search_edit, L"");
-    gw2mft::set_filter(g_app->hwnd_list, {});
+    if (g_app->hwnd_filter_type) SendMessageW(g_app->hwnd_filter_type, CB_SETCURSEL, 0, 0);
+    if (g_app->hwnd_filter_container) SendMessageW(g_app->hwnd_filter_container, CB_SETCURSEL, 0, 0);
+    if (g_app->index_loaded) apply_filters();
+    else gw2mft::set_filter(g_app->hwnd_list, {});
+}
+
+// File -> Open Index DB: loads a gw2index/gw2local SQLite, auto-opens the .dat
+// it references (for previews), builds the Type/Container column map + filters.
+void do_open_index(HWND hwnd) {
+    wchar_t path[MAX_PATH] = L"";
+    OPENFILENAMEW ofn{};
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwnd;
+    ofn.lpstrFilter = L"gw2index database (*.db)\0*.db\0All Files\0*.*\0";
+    ofn.lpstrFile = path;
+    ofn.nMaxFile = MAX_PATH;
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+    if (!GetOpenFileNameW(&ofn)) return;
+
+    std::string err;
+    if (!gw2idx::open(path, err)) {
+        MessageBoxA(hwnd, err.c_str(), "Failed to open index DB", MB_ICONERROR);
+        return;
+    }
+
+    // Previews still come from the .dat -> auto-open the one this index was built
+    // from, unless an archive is already loaded.
+    if (!g_app->dat_loaded) {
+        std::wstring datp = gw2idx::dat_path();
+        if (datp.empty() || GetFileAttributesW(datp.c_str()) == INVALID_FILE_ATTRIBUTES) {
+            MessageBoxW(hwnd,
+                        L"Index opened, but its .dat was not found on disk.\n"
+                        L"Open the archive via File > Open .dat for previews; filtering still works.",
+                        L"gw2browser", MB_ICONWARNING);
+        } else {
+            load_dat_path(hwnd, datp.c_str());
+        }
+    }
+
+    HCURSOR oc = SetCursor(LoadCursorW(nullptr, IDC_WAIT));
+
+    // Intern base_id -> (typeIdx<<16 | contIdx) so 800k rows cost ~3MB.
+    g_app->idx_type_names.clear();
+    g_app->idx_cont_names.clear();
+    g_app->index_meta.clear();
+    g_app->index_meta.reserve(gw2idx::entry_count() + 16);
+    std::unordered_map<std::string, int> tmap, cmap;
+    auto intern = [](std::unordered_map<std::string, int>& m, std::vector<std::string>& names, const char* s) -> int {
+        if (!s || !s[0]) return 0xFFFF;
+        auto it = m.find(s);
+        if (it != m.end()) return it->second;
+        int id = static_cast<int>(names.size());
+        names.emplace_back(s);
+        m[s] = id;
+        return id;
+    };
+    gw2idx::load_meta_map([&](uint32_t base_id, const char* type, const char* cont) {
+        int ti = intern(tmap, g_app->idx_type_names, type);
+        int ci = intern(cmap, g_app->idx_cont_names, cont);
+        g_app->index_meta[base_id] = (static_cast<uint32_t>(ti & 0xFFFF) << 16) | static_cast<uint32_t>(ci & 0xFFFF);
+    });
+
+    gw2mft::set_metadata_provider(g_app->hwnd_list,
+        [](uint32_t base_id, std::wstring& type, std::wstring& cont) -> bool {
+            auto it = g_app->index_meta.find(base_id);
+            if (it == g_app->index_meta.end()) return false;
+            int ti = (it->second >> 16) & 0xFFFF, ci = it->second & 0xFFFF;
+            auto tow = [](const std::string& s) { return std::wstring(s.begin(), s.end()); };
+            if (ti != 0xFFFF && ti < static_cast<int>(g_app->idx_type_names.size())) type = tow(g_app->idx_type_names[ti]);
+            if (ci != 0xFFFF && ci < static_cast<int>(g_app->idx_cont_names.size())) cont = tow(g_app->idx_cont_names[ci]);
+            return true;
+        });
+
+    // Populate the filter combos (sorted distinct values; item 0 = "(all)").
+    auto fill = [](HWND combo, const std::vector<std::string>& vals) {
+        SendMessageW(combo, CB_RESETCONTENT, 0, 0);
+        SendMessageW(combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(L"(all)"));
+        for (const std::string& v : vals) {
+            std::wstring w(v.begin(), v.end());
+            SendMessageW(combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(w.c_str()));
+        }
+        SendMessageW(combo, CB_SETCURSEL, 0, 0);
+    };
+    fill(g_app->hwnd_filter_type, gw2idx::types());
+    fill(g_app->hwnd_filter_container, gw2idx::containers());
+    ShowWindow(g_app->hwnd_filter_type, SW_SHOW);
+    ShowWindow(g_app->hwnd_filter_container, SW_SHOW);
+
+    g_app->index_loaded = true;
+    InvalidateRect(g_app->hwnd_list, nullptr, TRUE);
+
+    wchar_t st[128];
+    swprintf(st, 128, L"Index loaded: %zu entries, %zu types, %zu containers",
+             gw2idx::entry_count(), g_app->idx_type_names.size(), g_app->idx_cont_names.size());
+    SetWindowTextW(g_app->hwnd_status_label, st);
+    SetCursor(oc);
 }
 
 HMENU build_menu() {
     g_file_menu = CreatePopupMenu();
     AppendMenuW(g_file_menu, MF_STRING, ID_FILE_OPEN, L"&Open .dat...");
+    AppendMenuW(g_file_menu, MF_STRING, ID_FILE_OPEN_INDEX, L"Open &Index DB... (gw2index/gw2local)");
     AppendMenuW(g_file_menu, MF_STRING, ID_FILE_LOAD_TEMPLATE, L"Load Struct &JSON... (gw2_packfile.json)");
+    AppendMenuW(g_file_menu, MF_STRING, ID_FILE_LOAD_KEYS, L"Load String &Keys... (textkeys.csv)");
     AppendMenuW(g_file_menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(g_file_menu, MF_STRING, ID_FILE_EXPORT_COMPRESSED, L"Export &Compressed (Before)...");
     AppendMenuW(g_file_menu, MF_STRING, ID_FILE_EXPORT_DECOMPRESSED, L"Export &Decompressed (After)...");
@@ -873,6 +1248,13 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
         g_app->hwnd_clear_button =
             CreateWindowExW(0, L"BUTTON", L"Clear", WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, hwnd,
                              reinterpret_cast<HMENU>(ID_CLEAR_BUTTON), g_hinstance, nullptr);
+        // Type/Container filter combos (hidden until an index DB is loaded).
+        g_app->hwnd_filter_type = CreateWindowExW(
+            0, L"COMBOBOX", L"", WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL, 0, 0, 0, 0, hwnd,
+            reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_FILTER_TYPE)), g_hinstance, nullptr);
+        g_app->hwnd_filter_container = CreateWindowExW(
+            0, L"COMBOBOX", L"", WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL, 0, 0, 0, 0, hwnd,
+            reinterpret_cast<HMENU>(static_cast<INT_PTR>(ID_FILTER_CONTAINER)), g_hinstance, nullptr);
 
         g_app->hwnd_list = gw2mft::create(hwnd, g_hinstance, ID_LISTVIEW);
         gw2mft::set_selection_callback(g_app->hwnd_list, on_entry_selected);
@@ -955,6 +1337,23 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
             CreateWindowExW(0, L"BUTTON", L"Full-res tex", WS_CHILD | BS_AUTOCHECKBOX | BS_PUSHLIKE, 0, 0, 0, 0, hwnd,
                              reinterpret_cast<HMENU>(ID_TEX_FULLRES), g_hinstance, nullptr);
         SendMessageW(g_app->hwnd_tex_fullres, BM_SETCHECK, BST_CHECKED, 0);
+        // Light pre-pass toggle (Shader mode): real deferred directional lighting
+        // vs the flat light-buffer stand-in. Defaults ON to match the renderer.
+        g_app->hwnd_light_toggle =
+            CreateWindowExW(0, L"BUTTON", L"Light", WS_CHILD | BS_AUTOCHECKBOX | BS_PUSHLIKE, 0, 0, 0, 0, hwnd,
+                             reinterpret_cast<HMENU>(ID_LIGHT_PREPASS), g_hinstance, nullptr);
+        SendMessageW(g_app->hwnd_light_toggle, BM_SETCHECK,
+                     gw2m3d::lightprepass() ? BST_CHECKED : BST_UNCHECKED, 0);
+        // Audio playback controls (shown only for ASND/audio entries).
+        g_app->hwnd_audio_play =
+            CreateWindowExW(0, L"BUTTON", L"▶ Play", WS_CHILD, 0, 0, 0, 0, hwnd,
+                             reinterpret_cast<HMENU>(ID_AUDIO_PLAY), g_hinstance, nullptr);
+        g_app->hwnd_audio_stop =
+            CreateWindowExW(0, L"BUTTON", L"■ Stop", WS_CHILD, 0, 0, 0, 0, hwnd,
+                             reinterpret_cast<HMENU>(ID_AUDIO_STOP), g_hinstance, nullptr);
+        g_app->hwnd_audio_combo =
+            CreateWindowExW(0, L"COMBOBOX", L"", WS_CHILD | CBS_DROPDOWNLIST | WS_VSCROLL, 0, 0, 0, 0, hwnd,
+                             reinterpret_cast<HMENU>(ID_AUDIO_COMBO), g_hinstance, nullptr);
         // Map layer toggles (shown only for map/mapc entries).
         g_app->hwnd_layer_prop =
             CreateWindowExW(0, L"BUTTON", L"Props", WS_CHILD | BS_AUTOCHECKBOX | BS_PUSHLIKE, 0, 0, 0, 0, hwnd,
@@ -971,6 +1370,11 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
             WS_EX_CLIENTEDGE, L"EDIT", L"",
             WS_CHILD | WS_VSCROLL | WS_HSCROLL | ES_MULTILINE | ES_READONLY | ES_AUTOVSCROLL | ES_AUTOHSCROLL, 0, 0,
             0, 0, hwnd, nullptr, g_hinstance, nullptr);
+        // cntc referenced-asset list (interactive content browser).
+        g_app->hwnd_content_list = CreateWindowExW(
+            WS_EX_CLIENTEDGE, L"LISTBOX", L"",
+            WS_CHILD | WS_VSCROLL | LBS_NOTIFY | LBS_NOINTEGRALHEIGHT, 0, 0, 0, 0, hwnd,
+            reinterpret_cast<HMENU>(ID_CONTENT_LIST), g_hinstance, nullptr);
         {
             static HFONT text_font = CreateFontW(-14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
                                                   OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
@@ -1016,6 +1420,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
         // Best-effort: find gw2_packfile.json next to the exe / templates dir so
         // model preview works out of the box (File -> Load Struct JSON overrides).
         gw2tpl::auto_load();
+        try_autoload_keys();
         return 0;
     }
     case WM_SIZE:
@@ -1057,8 +1462,14 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
         case ID_FILE_OPEN:
             do_open_file(hwnd);
             return 0;
+        case ID_FILE_OPEN_INDEX:
+            do_open_index(hwnd);
+            return 0;
         case ID_FILE_LOAD_TEMPLATE:
             do_load_template(hwnd);
+            return 0;
+        case ID_FILE_LOAD_KEYS:
+            do_load_keys(hwnd);
             return 0;
         case ID_FILE_EXPORT_COMPRESSED:
             do_export(hwnd, true);
@@ -1144,6 +1555,10 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
             gw2m3d::set_show_skeleton(g_app->show_skeleton);
             InvalidateRect(g_app->hwnd_model, nullptr, FALSE);
             return 0;
+        case ID_FILTER_TYPE:
+        case ID_FILTER_CONTAINER:
+            if (HIWORD(wparam) == CBN_SELCHANGE) apply_filters();
+            return 0;
         case ID_ANIM_COMBO:
             if (HIWORD(wparam) == CBN_SELCHANGE) {
                 int sel = static_cast<int>(SendMessageW(g_app->hwnd_anim_combo, CB_GETCURSEL, 0, 0));
@@ -1178,6 +1593,26 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
             InvalidateRect(g_app->hwnd_model, nullptr, FALSE);
             return 0;
         }
+        case ID_AUDIO_PLAY: {
+            const auto& clips = active_audio_entry().audio_clips;
+            int sel = audio_selected_index();
+            if (sel >= 0 && sel < static_cast<int>(clips.size()))
+                gw2snd::play(clips[sel].data.data(), clips[sel].data.size());
+            return 0;
+        }
+        case ID_CONTENT_LIST:
+            if (HIWORD(wparam) == LBN_SELCHANGE)
+                load_content_asset(static_cast<int>(SendMessageW(g_app->hwnd_content_list, LB_GETCURSEL, 0, 0)));
+            return 0;
+        case ID_AUDIO_STOP:
+            gw2snd::stop();
+            return 0;
+        case ID_AUDIO_COMBO:
+            if (HIWORD(wparam) == CBN_SELCHANGE) {
+                gw2snd::stop();
+                update_audio_info(audio_selected_index());
+            }
+            return 0;
         case ID_TEX_FULLRES: {
             bool full = SendMessageW(g_app->hwnd_tex_fullres, BM_GETCHECK, 0, 0) == BST_CHECKED;
             set_texture_full_res(full);
@@ -1186,6 +1621,12 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
                 g_app->current_entry.kind == PreviewKind::Model) {
                 on_entry_selected(g_app->current_mft_index);
             }
+            return 0;
+        }
+        case ID_LIGHT_PREPASS: {
+            bool on = SendMessageW(g_app->hwnd_light_toggle, BM_GETCHECK, 0, 0) == BST_CHECKED;
+            gw2m3d::set_lightprepass(on);
+            InvalidateRect(g_app->hwnd_model, nullptr, FALSE); // redraw with the new lighting
             return 0;
         }
         default:
@@ -1199,6 +1640,7 @@ LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
         return 0;
     case WM_DESTROY:
         KillTimer(hwnd, TIMER_ANIM);
+        gw2snd::shutdown();
         gw2gfx::shutdown();
         gw2m3d::shutdown();
         delete g_app;
@@ -1295,6 +1737,88 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int cmd_show) {
         } catch (const std::exception& ex) { MessageBoxA(hwnd, ex.what(), "scene failed", MB_OK); }
     }
 
+    // Debug: GW2_AUDIOTEST=<mftIndex> exercises the audio detect+decode+play path
+    // and logs the result (playback is best-effort in a headless environment).
+    if (const char* at = std::getenv("GW2_AUDIOTEST")) {
+        FILE* lf = std::fopen("C:/Users/RIDWAN~1/AppData/Local/Temp/claude/audiotest.txt", "w");
+        try {
+            load_dat_file(g_app->data_gw2,
+                          "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Guild Wars 2\\Gw2.dat");
+            uint32_t idx = static_cast<uint32_t>(atoi(at));
+            ExtractedEntry e = extract_entry(g_app->data_gw2, idx);
+            bool isAudio = (e.kind == PreviewKind::Audio) && !e.audio_clips.empty();
+            const std::vector<uint8_t> empty;
+            const auto& ad = isAudio ? e.audio_clips.front().data : empty;
+            gw2snd::ClipInfo info = isAudio ? gw2snd::probe(ad.data(), ad.size()) : gw2snd::ClipInfo{};
+            bool played = isAudio && gw2snd::play(ad.data(), ad.size());
+            if (lf) std::fprintf(lf, "index=%u kind=%d isAudio=%d clips=%zu codec=%s bytes=%zu probe.ok=%d %uHz %uch %.2fs play=%d\n",
+                    idx, (int)e.kind, (int)isAudio, e.audio_clips.size(),
+                    isAudio ? e.audio_clips.front().codec.c_str() : "", ad.size(),
+                    (int)info.ok, info.sampleRate, info.channels, info.seconds, (int)played);
+            if (played) { Sleep(1200); gw2snd::stop(); }
+        } catch (const std::exception& ex) { if (lf) std::fprintf(lf, "exception: %s\n", ex.what()); }
+        if (lf) std::fclose(lf);
+        return 0;
+    }
+
+    // Debug: GW2_PIMGTEST=<mftIndex> composites a PIMG atlas and writes the RGBA
+    // preview to a BMP for visual verification.
+    if (const char* pt = std::getenv("GW2_PIMGTEST")) {
+        FILE* lf = std::fopen("C:/Users/RIDWAN~1/AppData/Local/Temp/claude/pimgtest.txt", "w");
+        try {
+            load_dat_file(g_app->data_gw2, "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Guild Wars 2\\Gw2.dat");
+            uint32_t idx = static_cast<uint32_t>(atoi(pt));
+            ExtractedEntry e = extract_entry(g_app->data_gw2, idx);
+            if (lf) std::fprintf(lf, "index=%u kind=%d is_image=%d %ux%u fmt=%s pxbytes=%zu textlen=%zu\n",
+                    idx, (int)e.kind, (int)e.is_image, e.preview_width, e.preview_height,
+                    e.preview_format_label.c_str(), e.preview_pixels.size(), e.text_preview.size());
+            if (!e.text_preview.empty()) {
+                int len = WideCharToMultiByte(CP_UTF8, 0, e.text_preview.c_str(), -1, nullptr, 0, nullptr, nullptr);
+                std::string u8(len > 0 ? len : 0, '\0');
+                if (len > 0) WideCharToMultiByte(CP_UTF8, 0, e.text_preview.c_str(), -1, u8.data(), len, nullptr, nullptr);
+                FILE* tf = std::fopen("C:/Users/RIDWAN~1/AppData/Local/Temp/claude/cntc_text.txt", "w");
+                if (tf) { std::fwrite(u8.data(), 1, u8.size(), tf); std::fclose(tf); }
+            }
+            // Content browser: verify a few referenced assets load into real sub-entries.
+            if (e.kind == PreviewKind::Content && lf) {
+                std::fprintf(lf, "content_asset_ids=%zu\n", e.content_asset_ids.size());
+                int shown = 0;
+                for (size_t i = 0; i < e.content_asset_ids.size() && shown < 8; i += 1 + e.content_asset_ids.size() / 8) {
+                    uint32_t fid = e.content_asset_ids[i];
+                    uint32_t base = get_by_base_id(g_app->data_gw2, fid);
+                    if (!base) { std::fprintf(lf, "  fileId %u -> (not in dat)\n", fid); continue; }
+                    try {
+                        ExtractedEntry sub = extract_entry(g_app->data_gw2, base - 1);
+                        std::fprintf(lf, "  fileId %u -> kind=%d is_image=%d %ux%u model=%d\n",
+                                     fid, (int)sub.kind, (int)sub.is_image, sub.preview_width, sub.preview_height,
+                                     (int)(sub.model != nullptr));
+                        ++shown;
+                    } catch (...) { std::fprintf(lf, "  fileId %u -> (extract failed)\n", fid); }
+                }
+            }
+            if (e.is_image && !e.preview_pixels.empty()) {
+                int w = (int)e.preview_width, h = (int)e.preview_height;
+                int rowB = w * 3, pad = (4 - (rowB & 3)) & 3, stride = rowB + pad;
+                uint32_t dataSize = stride * h, fileSize = 54 + dataSize;
+                std::vector<uint8_t> bmp(fileSize, 0);
+                uint8_t hdr[54] = {'B','M'};
+                std::memcpy(hdr + 2, &fileSize, 4); uint32_t off = 54; std::memcpy(hdr + 10, &off, 4);
+                uint32_t ih = 40; std::memcpy(hdr + 14, &ih, 4); std::memcpy(hdr + 18, &w, 4); std::memcpy(hdr + 22, &h, 4);
+                uint16_t planes = 1, bpp = 24; std::memcpy(hdr + 26, &planes, 2); std::memcpy(hdr + 28, &bpp, 2);
+                std::memcpy(bmp.data(), hdr, 54);
+                for (int y = 0; y < h; ++y) {
+                    const uint8_t* row = e.preview_pixels.data() + (size_t)(h - 1 - y) * w * 4;
+                    uint8_t* d = bmp.data() + 54 + (size_t)y * stride;
+                    for (int x = 0; x < w; ++x) { d[x*3+0] = row[x*4+2]; d[x*3+1] = row[x*4+1]; d[x*3+2] = row[x*4+0]; }
+                }
+                FILE* f = std::fopen("C:/Users/RIDWAN~1/AppData/Local/Temp/claude/pimg_preview.bmp", "wb");
+                if (f) { std::fwrite(bmp.data(), 1, bmp.size(), f); std::fclose(f); }
+            }
+        } catch (const std::exception& ex) { if (lf) std::fprintf(lf, "exception: %s\n", ex.what()); }
+        if (lf) std::fclose(lf);
+        return 0;
+    }
+
     // Debug: GW2_AUTOLOAD=<mftIndex> loads the Steam dat and applies that entry
     // synchronously (drives the real model pipeline for headless skinning checks).
     if (const char* al = std::getenv("GW2_AUTOLOAD")) {
@@ -1307,6 +1831,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int cmd_show) {
             bool isMap = (e.kind == PreviewKind::Map);
             apply_extracted_entry(idx, std::move(e));
             gw2m3d::on_resize(1000, 800);
+            // Debug: GW2_ORBIT="yaw,pitch" (radians) + GW2_ZOOM=factor to frame a
+            // specific detail headlessly (e.g. view the roof caps from below).
+            if (const char* ob = std::getenv("GW2_ORBIT")) {
+                float y = 0, p = 0; sscanf(ob, "%f,%f", &y, &p); gw2m3d::orbit(y, p);
+            }
+            if (const char* zm = std::getenv("GW2_ZOOM")) {
+                float z = (float)atof(zm); if (z > 0.01f) gw2m3d::zoom(z);
+            }
             if (isMap) {
                 gw2m3d::save_screenshot("C:/Users/RIDWAN~1/AppData/Local/Temp/claude/shot_map.bmp");
                 gw2m3d::set_layer_visible(gw2m3d::LAYER_COLLISION, true);

@@ -1,0 +1,8 @@
+lto-wrapper.exe: warning: using serial compilation of 24 LTRANS jobs
+lto-wrapper.exe: note: see the '-flto' option documentation for more information
+In function 'sqlite3Strlen30',
+    inlined from 'sqlite3ColumnSetColl' at ../gw2index/sqlite3.c:123723:0:
+../gw2index/sqlite3.c:35605: warning: 'strlen' reading 1 or more bytes from a region of size 0 [-Wstringop-overread]
+35605 |   return 0x3fffffff & (int)strlen(z);
+In function 'sqlite3ColumnSetColl':
+lto1.exe: note: source object is likely at address zero

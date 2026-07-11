@@ -7,6 +7,7 @@
 #include <dxgiformat.h>
 #include <functional>
 #include <map>
+#include <set>
 #include <span>
 #include <thread>
 #include <unordered_map>
@@ -16,6 +17,7 @@
 #include "cmp_decompress_method0.hpp"
 #include "dds.h"
 #include "gw2_atex.hpp"
+#include "gw2_audio.hpp"
 #include "gw2model.hpp"
 #include "strs_view.h"
 #include "struct_template.h"
@@ -377,8 +379,19 @@ constexpr uint32_t kGlobalRoleBase = 33;
 // PS sampler bindings to either a decoded material texture (via `get_tex`, which
 // dedups into ModelPreview::textures) or a global stand-in. All CPU-side; the
 // renderer creates the GPU objects. Returns a GameMaterial (ok=false on failure).
+// Engine-global shader uniforms: filled by the engine/renderer (camera, lighting,
+// fog, transforms), NOT per-material MatConstants. Everything else in a shader's
+// uniform table is a material constant that pairs with the AMAT constants[] tokens.
+static const std::set<std::string> kEngineGlobalUniforms = {
+    "CameraPosition", "FogColorNearMinusFar", "FogColorFar", "FogColorHeight", "FogDepthCue", "FogParam0",
+    "ViewProjection", "World", "WorldView", "WorldViewProjection", "WorldToShadowA", "WorldToShadowB",
+    "WorldToShadowC", "TexTransform0A", "TexTransform0B", "TexTransform1A", "TexTransform1B", "TexTransform2A",
+    "TexTransform2B", "TexTransform3A", "TexTransform3B", "LightBuffer", "StencilId", "ScreenDims", "fxclr",
+    "shSunColor", "shSunData", "shSun", "shRed", "shGreen", "shBlue", "TexelOffset", "StippleDensity", "Time",
+    "SunColor", "SunDirection", "AmbientColor", "AlphaRef", "fadedif"};
+
 GameMaterial extract_game_material(Gw2Dat& dat, const nlohmann::json& tpl, const gw2model::Material& m,
-                                   const std::function<int(uint32_t)>& get_tex) {
+                                   const std::function<int(uint32_t)>& get_tex, bool effectHint) {
     GameMaterial out;
     out.index = m.index;
     uint32_t fnBase = get_by_base_id(dat, m.materialFile);
@@ -389,14 +402,82 @@ GameMaterial extract_game_material(Gw2Dat& dat, const nlohmann::json& tpl, const
     gw2model::AmatSet set;
     try { set = gw2model::Extractor(amat, tpl).extractAmat(); } catch (const std::exception&) { return out; }
 
-    bool useTrans = m.sortLayer > 0 && set.hasTrans;
+    // Pick the AMAT's transparent effect for translucent submeshes. GW2's sortLayer
+    // is the usual signal but is left 0 on some models' translucent materials (e.g.
+    // jade-tech lamp 291977). The reliable per-material signal is materialFlags bit 0
+    // (0x1) = alpha-blend/translucent: verified on 291977 -- mats 0 & 3 (the jade
+    // lenses) carry it (flags 0x0a09) while the opaque wood/brick/blades don't
+    // (0x0a08). Without this the jade renders as an OPAQUE grey block that occludes
+    // the flower crest behind it (the opaque G-buffer variant, unlit offline).
+    // Use the AMAT's OPAQUE effect variant unless the MODL marks the submesh for the
+    // sorted/transparent pass (sortLayer>0). NOTE: materialFlags bit0 is NOT a
+    // "render alpha-blended" flag -- forcing the transparent variant on the jade
+    // rods (291977 mats 0 & 3) made them wrongly see-through; they are solid/opaque
+    // in game. Correct color comes from the material constants (bound below), not
+    // from switching effect variants.
+    bool useTrans = set.hasTrans && m.sortLayer > 0;
     int vsIdx = useTrans ? set.transVsIndex : set.vsIndex;
     int psIdx = useTrans ? set.transPsIndex : set.psIndex;
+    if (std::getenv("GW2_MATDBG")) {
+        std::fprintf(stderr, "[mat %u] matId=%u flags=0x%08x sortLayer=%d useTrans=%d ps=%d transPs=%d nConst=%zu\n",
+                     m.index, m.materialId, m.materialFlags, (int)m.sortLayer, (int)useTrans, set.psIndex,
+                     set.transPsIndex, m.constants.size());
+        // Decode each MatConstant token32 by reversing the engine's 5-bit name pack
+        // (sub_140E3B5E0: a-z/A-Z -> 1..26, 5 bits each; top nibble = 2-digit suffix).
+        for (const auto& c : m.constants) {
+            char nm[16]; int k = 0; uint32_t t = c.name;
+            for (int b = 0; b < 6 && k < 15; ++b) { uint32_t v = (t >> (b * 5)) & 0x1f; if (v >= 1 && v <= 26) nm[k++] = char('a' + v - 1); }
+            uint32_t suf = (t >> 28) & 0xf; // top nibble
+            nm[k] = 0;
+            std::fprintf(stderr, "    const token=0x%08x name='%s' suf=%u val=[%.3f %.3f %.3f %.3f]\n",
+                         c.name, nm, suf, c.value[0], c.value[1], c.value[2], c.value[3]);
+        }
+    }
     if (vsIdx < 0 || psIdx < 0 || vsIdx >= (int)set.shaders.size() || psIdx >= (int)set.shaders.size()) return out;
 
     parse_bgfx(set.shaders[vsIdx].dxbc, out.vsDXBC, out.vsUniforms, out.vsConstBuf);
     parse_bgfx(set.shaders[psIdx].dxbc, out.psDXBC, out.psUniforms, out.psConstBuf);
     if (out.vsDXBC.empty() || out.psDXBC.empty()) return out;
+
+    // Bind MODL MatConstants -> shader cbuffer offsets. The AMAT's ordered
+    // constants[] token list pairs one-to-one (in order) with the shader's
+    // material-constant uniforms (the non-engine-global ones), so:
+    //   token = constantTokens[i]  <->  uniform[i].byteOff
+    // and a MODL MatConstant whose token matches writes its value there. Verified
+    // on 291977 (token 0x894bbfd5 -> 'intmodx'@320 = 6.0, etc). This feeds glow /
+    // spec / metalness / env / scroll / tint params that were previously zeroed.
+    auto bind_consts = [&](const std::vector<uint32_t>& ctoks, const std::vector<GameShaderUniform>& unis,
+                           std::vector<GameConstOverride>& outc) {
+        std::vector<std::pair<uint32_t, int>> tokOff; // constantTokens[i] -> uniform[i].byteOff
+        size_t mi = 0;
+        for (const auto& u : unis) {
+            if (u.type == 0 || kEngineGlobalUniforms.count(u.name)) continue; // engine-filled, not a material const
+            if (mi < ctoks.size()) tokOff.emplace_back(ctoks[mi], u.byteOff);
+            ++mi;
+        }
+        if (std::getenv("GW2_CONSTDBG"))
+            std::fprintf(stderr, "[mat %u] bind: material-uniforms=%zu constantTokens=%zu %s\n",
+                         m.index, mi, ctoks.size(), mi == ctoks.size() ? "ALIGNED" : "*** MISALIGNED ***");
+        // SAFETY GATE: the positional pairing (constantTokens[i] <-> uniform[i]) is
+        // only valid when every token has a live uniform. The DXBC compiler strips
+        // unused constants, so counts often differ -- then the pairing drifts and a
+        // MatConstant lands in the WRONG uniform (e.g. 291977 jade -> red). Without
+        // the name->token hash (unsolved: tokens hash a longer internal name than the
+        // truncated bgfx uniform name) we can't realign, so bind only when aligned.
+        if (mi != ctoks.size()) return;
+        for (const auto& c : m.constants) {
+            for (const auto& to : tokOff) {
+                if (to.first == c.name) {
+                    GameConstOverride ov; ov.byteOff = to.second;
+                    for (int k = 0; k < 4; ++k) ov.value[k] = c.value[k];
+                    outc.push_back(ov);
+                    break;
+                }
+            }
+        }
+    };
+    bind_consts(set.shaders[vsIdx].constantTokens, out.vsUniforms, out.vsConsts);
+    bind_consts(set.shaders[psIdx].constantTokens, out.psUniforms, out.psConsts);
 
     for (const auto& b : set.shaders[psIdx].samplers) {
         if (b.textureSlot >= 16) continue;
@@ -497,13 +578,15 @@ std::shared_ptr<ModelPreview> build_model_preview(const std::vector<uint8_t>& mo
                 for (int k = 0; k < 4; ++k) mat.tint[k] = v[k];
             }
         }
+        bool matIsEffect = mat.isEffect; // captured before the move below
         out->materials.push_back(std::move(mat));
 
         // Real game shaders (bgfx DXBC from the material's AMAT), for the
         // "Shader" render mode. Only for the single-model preview path -- the
-        // map scene loads many props and skips this to stay fast.
+        // map scene loads many props and skips this to stay fast. Pass the effect
+        // flag so translucent materials pick the AMAT's transparent variant.
         if (want_game) {
-            out->gameMaterials.push_back(extract_game_material(dat, tpl, m, get_texture));
+            out->gameMaterials.push_back(extract_game_material(dat, tpl, m, get_texture, matIsEffect));
         }
     }
 
@@ -901,6 +984,345 @@ std::wstring bytes_to_wide(const std::vector<uint8_t>& d) {
     return w;
 }
 
+// ---- PIMG (paged image atlas) --------------------------------------------
+// A PIMG packfile (chunk PGTB) is not pixels: it's a grid of tiles, each an
+// EXTERNAL texture referenced by fileId at a (cx,cy) coordinate. We composite the
+// referenced tiles into a single downscaled preview image.
+struct PimgAtlas {
+    int tileW = 0, tileH = 0;
+    uint32_t format = 0;                 // fourcc, e.g. 'DXT5'
+    int minX = 0, minY = 0, maxX = 0, maxY = 0;
+    struct Page { int cx, cy; uint32_t fileId; };
+    std::vector<Page> pages;
+};
+
+// Decode a GW2 "filename" field at position p -> fileId. The field is a self-relative
+// pointer to a {uint16 lo, uint16 hi, ...} record; fileId = 0xFF00*hi + lo - 0xFF00FF
+// (mirrors gw2model::decodeFilenameAt).
+uint32_t decode_pimg_fileref(const std::vector<uint8_t>& d, size_t p) {
+    auto rd32 = [&](size_t q) -> uint32_t {
+        return (q + 4 <= d.size()) ? (d[q] | (d[q + 1] << 8) | (d[q + 2] << 16) | ((uint32_t)d[q + 3] << 24)) : 0;
+    };
+    auto rd16 = [&](size_t q) -> uint32_t { return (q + 2 <= d.size()) ? (uint32_t)(d[q] | (d[q + 1] << 8)) : 0; };
+    uint32_t v = rd32(p);
+    if (v == 0) return 0;
+    size_t t = p + v;
+    uint32_t lo = rd16(t), hi = rd16(t + 2);
+    if (lo < 0x100 || hi < 0x100) return 0;
+    return (uint32_t)(0xFF00L * hi + lo - 0xFF00FF);
+}
+
+// Parse the PGTB v3 chunk (layers[0] gives tile size/format; strippedPages gives the
+// tile list). Returns false for other versions / malformed data.
+bool parse_pimg(const std::vector<uint8_t>& d, PimgAtlas& out) {
+    if (d.size() < 12 || d[0] != 'P' || d[1] != 'F' || std::memcmp(d.data() + 8, "PIMG", 4) != 0) return false;
+    auto rd16 = [&](size_t p) -> uint32_t { return (p + 2 <= d.size()) ? (d[p] | (d[p + 1] << 8)) : 0; };
+    auto rd32 = [&](size_t p) -> uint32_t {
+        return (p + 4 <= d.size()) ? (d[p] | (d[p + 1] << 8) | (d[p + 2] << 16) | ((uint32_t)d[p + 3] << 24)) : 0;
+    };
+    // Locate the PGTB chunk.
+    size_t pos = rd16(6);
+    while (pos + 16 <= d.size() && std::memcmp(d.data() + pos, "PGTB", 4) != 0) {
+        uint32_t csz = rd32(pos + 4); size_t next = pos + 8 + csz;
+        if (next <= pos) return false;
+        pos = next;
+    }
+    if (pos + 16 > d.size() || std::memcmp(d.data() + pos, "PGTB", 4) != 0) return false;
+    if (rd16(pos + 8) != 3) return false;            // only the V3 layout is implemented
+    size_t fb = pos + rd16(pos + 10);                // field base (chunk header size)
+    // layers[0]: strippedDims @+8 (tile w,h), strippedFormat @+20.
+    uint32_t layerCount = rd32(fb);
+    size_t layer0 = (fb + 4) + rd32(fb + 4);         // self-relative array_ptr
+    if (layerCount >= 1 && layer0 + 24 <= d.size()) {
+        out.tileW = (int)rd32(layer0 + 8);
+        out.tileH = (int)rd32(layer0 + 12);
+        out.format = rd32(layer0 + 20);
+    }
+    // strippedPages: array of PagedImagePageDataV3 (24 bytes: layer, coord(cx,cy), fileId, flags, solidColor).
+    uint32_t pageCount = rd32(fb + 16);
+    size_t pages0 = (fb + 20) + rd32(fb + 20);
+    if (pageCount == 0 || pageCount > 500000) return false;
+    out.minX = out.minY = 1 << 30; out.maxX = out.maxY = -(1 << 30);
+    for (uint32_t i = 0; i < pageCount; ++i) {
+        size_t pp = pages0 + (size_t)i * 24;
+        if (pp + 24 > d.size()) break;
+        PimgAtlas::Page pg{ (int)rd32(pp + 4), (int)rd32(pp + 8), decode_pimg_fileref(d, pp + 12) };
+        if (pg.fileId == 0) continue;
+        out.pages.push_back(pg);
+        out.minX = std::min(out.minX, pg.cx); out.maxX = std::max(out.maxX, pg.cx);
+        out.minY = std::min(out.minY, pg.cy); out.maxY = std::max(out.maxY, pg.cy);
+    }
+    return !out.pages.empty() && out.tileW > 0 && out.tileH > 0;
+}
+
+// Composite an atlas into a single RGBA preview (downscaled to fit kMaxDim, tiles
+// capped so huge map atlases still preview quickly). Fills result.preview_* + returns
+// a summary line. `dat` must be loaded.
+std::string composite_pimg(const PimgAtlas& a, Gw2Dat& dat, ExtractedEntry& result) {
+    const int kMaxDim = 2048;   // max preview dimension
+    const int kMaxTiles = 300;  // cap on tiles actually decoded (subsample beyond) -- keeps
+                                // giant map atlases (1000+ tiles) previewing in reasonable time
+
+    long long gridW = (long long)a.maxX - a.minX + 1, gridH = (long long)a.maxY - a.minY + 1;
+    long long fullW = gridW * a.tileW, fullH = gridH * a.tileH;
+    double scale = std::min(1.0, (double)kMaxDim / std::max(fullW, fullH));
+    int outW = std::max(1, (int)(fullW * scale)), outH = std::max(1, (int)(fullH * scale));
+    result.preview_pixels.assign((size_t)outW * outH * 4, 0);
+    uint8_t* dst = result.preview_pixels.data();
+
+    int stride = 1 + (int)(a.pages.size() / (size_t)kMaxTiles); // subsample if too many
+    int loaded = 0;
+    for (size_t pi = 0; pi < a.pages.size(); pi += stride) {
+        const auto& pg = a.pages[pi];
+        ModelTextureCPU tex;
+        if (!decode_texture_by_fileid(dat, pg.fileId, tex) || tex.rgba.empty()) continue;
+        ++loaded;
+        // Destination rectangle for this tile in the downscaled canvas.
+        int dx0 = (int)(((long long)(pg.cx - a.minX) * a.tileW) * scale);
+        int dy0 = (int)(((long long)(pg.cy - a.minY) * a.tileH) * scale);
+        int dw = std::max(1, (int)(a.tileW * scale)), dh = std::max(1, (int)(a.tileH * scale));
+        for (int y = 0; y < dh; ++y) {
+            int oy = dy0 + y; if (oy < 0 || oy >= outH) continue;
+            int sy = (int)((long long)y * tex.height / dh); if (sy >= tex.height) sy = tex.height - 1;
+            for (int x = 0; x < dw; ++x) {
+                int ox = dx0 + x; if (ox < 0 || ox >= outW) continue;
+                int sx = (int)((long long)x * tex.width / dw); if (sx >= tex.width) sx = tex.width - 1;
+                const uint8_t* s = &tex.rgba[((size_t)sy * tex.width + sx) * 4];
+                uint8_t* o = &dst[((size_t)oy * outW + ox) * 4];
+                o[0] = s[0]; o[1] = s[1]; o[2] = s[2]; o[3] = s[3];
+            }
+        }
+    }
+    result.preview_dxgi_format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    result.preview_width = outW;
+    result.preview_height = outH;
+    result.preview_pitch = outW * 4;
+    char fourcc[5] = {0}; std::memcpy(fourcc, &a.format, 4);
+    for (int i = 0; i < 4; ++i) if (fourcc[i] < 32) fourcc[i] = '?';
+    result.preview_format_label = std::string("PIMG atlas ") + fourcc;
+    char buf[256];
+    std::snprintf(buf, sizeof buf, "PIMG paged-image atlas: %zu tiles (%lldx%lld grid, %dx%d px each, %s), %d tiles loaded into a %dx%d preview.",
+                  a.pages.size(), gridW, gridH, a.tileW, a.tileH, fourcc, loaded, outW, outH);
+    return buf;
+}
+
+// ---- AMSP (sound bank) ----------------------------------------------------
+// An AMSP packfile is a sound SCRIPT/bank (PF v5, 64-bit pointers): its metaSound
+// array references the actual audio in EXTERNAL ASND entries by fileId. We collect
+// those fileIds, load each ASND, and present them as a playable multi-sound bank.
+// Layout (chunk AMSP v33): metaSound array_ptr @chunk+60 {u32 count, i64 selfRelPtr};
+// MetaSoundDataV31 stride 326, fileName array_ptr @elem+60; FileNameDataV31 stride 36,
+// fileName field @fe+24 = a 64-bit self-relative ptr to a {u16 lo, u16 hi} fileref
+// (fileId = 0xFF00*hi + lo - 0xFF00FF, same decode as PIMG/model filenames).
+std::vector<uint32_t> parse_amsp_sound_ids(const std::vector<uint8_t>& d) {
+    std::vector<uint32_t> ids;
+    if (d.size() < 12 || d[0] != 'P' || d[1] != 'F' || std::memcmp(d.data() + 8, "AMSP", 4) != 0) return ids;
+    auto rd16 = [&](size_t p) -> uint32_t { return (p + 2 <= d.size()) ? (uint32_t)(d[p] | (d[p + 1] << 8)) : 0; };
+    auto rd32 = [&](size_t p) -> uint32_t {
+        return (p + 4 <= d.size()) ? (d[p] | (d[p + 1] << 8) | (d[p + 2] << 16) | ((uint32_t)d[p + 3] << 24)) : 0;
+    };
+    auto rd64 = [&](size_t p) -> int64_t {
+        if (p + 8 > d.size()) return 0;
+        int64_t v = 0; std::memcpy(&v, d.data() + p, 8); return v;
+    };
+    size_t pos = rd16(6);
+    while (pos + 16 <= d.size() && std::memcmp(d.data() + pos, "AMSP", 4) != 0) {
+        uint32_t csz = rd32(pos + 4); size_t next = pos + 8 + csz; if (next <= pos) return ids; pos = next;
+    }
+    if (pos + 72 > d.size() || std::memcmp(d.data() + pos, "AMSP", 4) != 0) return ids;
+
+    uint32_t msCount = rd32(pos + 60);
+    int64_t  msRel   = rd64(pos + 64);
+    if (msRel == 0 || msCount == 0 || msCount > 500000) return ids;
+    size_t ms0 = (pos + 64) + (size_t)msRel;
+
+    const size_t MS_STRIDE = 326, FN_STRIDE = 36;
+    const size_t kMaxSounds = 512;
+    std::set<uint32_t> seen;
+    for (uint32_t i = 0; i < msCount && ids.size() < kMaxSounds; ++i) {
+        size_t elem = ms0 + (size_t)i * MS_STRIDE;
+        if (elem + 72 > d.size()) break;
+        uint32_t fnCount = rd32(elem + 60);
+        int64_t  fnRel   = rd64(elem + 64);
+        if (fnRel == 0 || fnCount == 0 || fnCount > 4096) continue;
+        size_t fn0 = (elem + 64) + (size_t)fnRel;
+        for (uint32_t j = 0; j < fnCount && ids.size() < kMaxSounds; ++j) {
+            size_t fe = fn0 + (size_t)j * FN_STRIDE;
+            if (fe + 32 > d.size()) break;
+            int64_t rel = rd64(fe + 24);
+            if (rel == 0) continue;
+            size_t rec = (fe + 24) + (size_t)rel;
+            uint32_t lo = rd16(rec), hi = rd16(rec + 2);
+            if (lo < 0x100 || hi < 0x100) continue;
+            uint32_t fid = (uint32_t)(0xFF00L * hi + lo - 0xFF00FF);
+            if (fid && seen.insert(fid).second) ids.push_back(fid);
+        }
+    }
+    return ids;
+}
+
+// Load the AMSP's referenced ASND sounds into result.audio_clips. Returns true if any
+// playable sound was found. Builds a fileId->baseId map once (O(1) lookups).
+bool build_amsp_audio(const std::vector<uint8_t>& amsp, const std::string& dat_path, ExtractedEntry& result) {
+    std::vector<uint32_t> ids = parse_amsp_sound_ids(amsp);
+    if (ids.empty() || dat_path.empty()) return false;
+    Gw2Dat dat;
+    try { load_dat_file(dat, dat_path); } catch (const std::exception&) { return false; }
+    std::unordered_map<uint32_t, uint32_t> fid2base;
+    fid2base.reserve(dat.mft_file_id_data_list.size() * 2);
+    for (const auto& e : dat.mft_file_id_data_list) fid2base[e.file_id] = e.base_id;
+
+    for (uint32_t fid : ids) {
+        auto it = fid2base.find(fid);
+        if (it == fid2base.end()) continue;
+        uint32_t base = it->second;
+        if (base == 0 || base - 1 >= dat.mft_data_list.size()) continue;
+        std::vector<uint8_t> bytes;
+        try {
+            const MftData& e = dat.mft_data_list[base - 1];
+            std::vector<uint8_t> raw = read_entry_bytes(dat.file_info.file_path, e);
+            std::vector<uint8_t> stripped = gw2cmp::strip_crc32(std::span<const uint8_t>(raw));
+            if (e.compression_flag == 0) bytes = std::move(stripped);
+            else if (stripped.size() >= 8) {
+                uint32_t usz = stripped[4] | (stripped[5] << 8) | (stripped[6] << 16) | ((uint32_t)stripped[7] << 24);
+                bytes = gw2cmp::decompress_method0(std::span<const uint8_t>(stripped).subspan(8), usz);
+            }
+        } catch (const std::exception&) { continue; }
+        if (bytes.empty()) continue;
+        for (auto& c : gw2audio::extract(bytes.data(), bytes.size())) {
+            AudioClipCPU cc; cc.codec = gw2audio::codecName(c.codec); cc.data = std::move(c.data);
+            result.audio_clips.push_back(std::move(cc));
+        }
+    }
+    return !result.audio_clips.empty();
+}
+
+// ---- cntc (content datastore) ---------------------------------------------
+// A "cntc" packfile (PF v5, 64-bit ptrs, single chunk "Main" = PackContent) is GW2's
+// content database: content type/namespace definitions, an index, fixup tables, a
+// string table of content codenames, and a big content-data blob. It's not a viewable
+// asset, so we parse the header into a readable summary + a sample of the codenames.
+std::wstring parse_cntc_summary(const std::vector<uint8_t>& d) {
+    if (d.size() < 12 || d[0] != 'P' || d[1] != 'F' || std::memcmp(d.data() + 8, "cntc", 4) != 0) return {};
+    auto rd16 = [&](size_t p) -> uint32_t { return (p + 2 <= d.size()) ? (uint32_t)(d[p] | (d[p + 1] << 8)) : 0; };
+    auto rd32 = [&](size_t p) -> uint32_t {
+        return (p + 4 <= d.size()) ? (d[p] | (d[p + 1] << 8) | (d[p + 2] << 16) | ((uint32_t)d[p + 3] << 24)) : 0;
+    };
+    auto rd64 = [&](size_t p) -> int64_t { if (p + 8 > d.size()) return 0; int64_t v = 0; std::memcpy(&v, d.data() + p, 8); return v; };
+    // Locate the Main chunk.
+    size_t pos = rd16(6);
+    while (pos + 16 <= d.size() && std::memcmp(d.data() + pos, "Main", 4) != 0) {
+        uint32_t csz = rd32(pos + 4); size_t next = pos + 8 + csz; if (next <= pos) return {}; pos = next;
+    }
+    if (pos + 16 > d.size() || std::memcmp(d.data() + pos, "Main", 4) != 0) return {};
+    size_t base = pos + 16;                       // PackContent fields (flags @base, arrays follow)
+    // Each array_ptr = {u32 count, i64 self-relative ptr} (12 bytes); ptr from its own position.
+    auto arr = [&](int idx, size_t& dataOff) -> uint32_t {
+        size_t p = base + 4 + (size_t)idx * 12;   // skip flags(4)
+        uint32_t c = rd32(p);
+        int64_t rel = rd64(p + 4);
+        dataOff = (size_t)((p + 4) + rel);
+        return c;
+    };
+    static const wchar_t* kNames[11] = {
+        L"content types", L"namespaces", L"file references", L"index entries", L"local fixups",
+        L"external fixups", L"file-index fixups", L"string-index fixups", L"tracked references",
+        L"strings (codenames)", L"content data bytes" };
+    size_t off[11]; uint32_t cnt[11];
+    for (int i = 0; i < 11; ++i) cnt[i] = arr(i, off[i]);
+
+    std::wstring s = L"GW2 content datastore (cntc / PackContent)\r\n";
+    s += L"An internal content database -- not a viewable/playable asset.\r\n\r\n";
+    wchar_t line[128];
+    for (int i = 0; i < 11; ++i) { swprintf(line, 128, L"  %-22ls %u\r\n", kNames[i], cnt[i]); s += line; }
+
+    // Namespace names (present in master-manifest cntc files): wchar_ptr + domain + parentIndex (16 B).
+    if (cnt[1] > 0) {
+        s += L"\r\nNamespaces:\r\n";
+        uint32_t nn = cnt[1] < 60 ? cnt[1] : 60;
+        for (uint32_t i = 0; i < nn; ++i) {
+            size_t ep = off[1] + (size_t)i * 16;
+            int64_t rel = rd64(ep);
+            size_t sp = (size_t)(ep + rel);
+            std::wstring name;
+            for (size_t q = sp; q + 2 <= d.size() && name.size() < 120; q += 2) {
+                wchar_t ch = (wchar_t)(d[q] | (d[q + 1] << 8)); if (!ch) break; name += ch;
+            }
+            if (rel == 0) name = L"(root)";
+            s += L"  " + name + L"\r\n";
+        }
+    }
+
+    // Sample of the content codename string table.
+    if (cnt[9] > 0) {
+        s += L"\r\nContent codenames (first 60 of "; s += std::to_wstring(cnt[9]); s += L"):\r\n";
+        uint32_t ns = cnt[9] < 60 ? cnt[9] : 60;
+        for (uint32_t i = 0; i < ns; ++i) {
+            size_t ep = off[9] + (size_t)i * 8;
+            int64_t rel = rd64(ep);
+            if (rel == 0) continue;
+            size_t sp = (size_t)(ep + rel);
+            std::wstring name;
+            for (size_t q = sp; q + 2 <= d.size() && name.size() < 120; q += 2) {
+                wchar_t ch = (wchar_t)(d[q] | (d[q + 1] << 8)); if (!ch) break; name += ch;
+            }
+            s += L"  " + name + L"\r\n";
+        }
+    }
+    return s;
+}
+
+// Collect the unique external asset fileIds a cntc content blob references. Each
+// `fileIndices` fixup {u32 relocOffset} marks a spot in the content byte-array that
+// holds a raw fileId (verified: they resolve to textures/models). Returns up to `cap`
+// unique ids.
+std::vector<uint32_t> cntc_referenced_asset_ids(const std::vector<uint8_t>& d, size_t cap) {
+    std::vector<uint32_t> out;
+    if (d.size() < 12 || std::memcmp(d.data() + 8, "cntc", 4) != 0) return out;
+    auto rd16 = [&](size_t p) -> uint32_t { return (p + 2 <= d.size()) ? (uint32_t)(d[p] | (d[p + 1] << 8)) : 0; };
+    auto rd32 = [&](size_t p) -> uint32_t {
+        return (p + 4 <= d.size()) ? (d[p] | (d[p + 1] << 8) | (d[p + 2] << 16) | ((uint32_t)d[p + 3] << 24)) : 0;
+    };
+    auto rd64 = [&](size_t p) -> int64_t { if (p + 8 > d.size()) return 0; int64_t v = 0; std::memcpy(&v, d.data() + p, 8); return v; };
+    size_t pos = rd16(6);
+    while (pos + 16 <= d.size() && std::memcmp(d.data() + pos, "Main", 4) != 0) {
+        uint32_t csz = rd32(pos + 4); size_t next = pos + 8 + csz; if (next <= pos) return out; pos = next;
+    }
+    if (pos + 16 > d.size()) return out;
+    size_t base = pos + 16;
+    auto arr = [&](int i, size_t& off) { size_t p = base + 4 + (size_t)i * 12; off = (size_t)((p + 4) + rd64(p + 4)); return rd32(p); };
+    size_t fidxOff, contentOff;
+    uint32_t fidxCount = arr(6, fidxOff);  // fileIndices
+    arr(10, contentOff);                   // content byte-array start
+    std::set<uint32_t> seen;
+    for (uint32_t i = 0; i < fidxCount && out.size() < cap; ++i) {
+        uint32_t reloc = rd32(fidxOff + (size_t)i * 4);
+        uint32_t fid = rd32(contentOff + reloc);
+        if (fid > 40000 && fid < 0xFFFFFF && seen.insert(fid).second) out.push_back(fid);
+    }
+    return out;
+}
+
+// Lightweight type peek for an entry addressed by fileId: decompress its header and
+// classify by magic/container. Used to characterize cntc asset references.
+std::string classify_fileid(Gw2Dat& dat, uint32_t fileId) {
+    std::vector<uint8_t> b = load_modl_bytes_by_fileid(dat, fileId); // generic decompress
+    if (b.size() < 12) return "";
+    if (b[0] == 'P' && b[1] == 'F') {
+        char c[5] = {0}; std::memcpy(c, b.data() + 8, 4);
+        std::string cs(c);
+        if (pf_has_chunk(b, "GEOM")) return "model";
+        if (cs == "ASND" || cs == "ABNK" || cs == "AMSP") return "audio";
+        if (cs == "PIMG") return "image atlas";
+        return "packfile " + cs;
+    }
+    static const char* atex[] = {"ATEX", "ATTX", "ATEC", "ATEP", "ATEU", "ATET", "CTEX"};
+    for (const char* m : atex) if (std::memcmp(b.data(), m, 4) == 0) return "texture";
+    if (b[0] == 'D' && b[1] == 'D' && b[2] == 'S') return "texture";
+    if (std::memcmp(b.data(), "strs", 4) == 0) return "strings";
+    return "other";
+}
+
 // All the CPU-bound decompression/format-detection work, independent of how
 // `raw_bytes` was read off disk -- this is what makes it safe to run on a
 // background thread. `dat_path` is used to resolve model textures.
@@ -952,6 +1374,65 @@ ExtractedEntry decompress_raw_entry(std::vector<uint8_t> raw_bytes, uint16_t com
         result.kind = PreviewKind::Strs;
         result.text_preview = gw2strs::decode(result.decompressed.data(), result.decompressed.size());
         return result;
+    }
+
+    // ASND audio packfile (or raw audio) with an embedded MP3/Ogg -> playable audio.
+    // AMSP sound-pool metadata has no embedded samples, so extract() returns empty
+    // and we fall through to the generic handling.
+    if (gw2audio::isAudio(result.decompressed.data(), result.decompressed.size())) {
+        bool isAmsp = result.decompressed.size() >= 12 &&
+                      std::memcmp(result.decompressed.data() + 8, "AMSP", 4) == 0;
+        if (isAmsp) {
+            // AMSP sound bank: the audio lives in external ASND entries it references.
+            if (build_amsp_audio(result.decompressed, dat_path, result)) {
+                result.kind = PreviewKind::Audio;
+                return result;
+            }
+        } else {
+            // ASND / ABNK bank / raw asnd: the audio is embedded.
+            auto clips = gw2audio::extract(result.decompressed.data(), result.decompressed.size());
+            if (!clips.empty()) {
+                result.kind = PreviewKind::Audio;
+                for (auto& c : clips) {
+                    AudioClipCPU cc;
+                    cc.codec = gw2audio::codecName(c.codec);
+                    cc.data = std::move(c.data);
+                    result.audio_clips.push_back(std::move(cc));
+                }
+                return result;
+            }
+        }
+    }
+
+    // PIMG paged-image atlas -> composite its referenced tiles into a preview image.
+    if (result.decompressed.size() >= 12 && result.decompressed[0] == 'P' && result.decompressed[1] == 'F' &&
+        std::memcmp(result.decompressed.data() + 8, "PIMG", 4) == 0) {
+        PimgAtlas atlas;
+        if (parse_pimg(result.decompressed, atlas) && !dat_path.empty()) {
+            Gw2Dat dat;
+            try { load_dat_file(dat, dat_path); } catch (const std::exception&) {}
+            composite_pimg(atlas, dat, result);
+            result.kind = PreviewKind::Image;
+            result.is_image = true;
+            return result;
+        }
+    }
+
+    // cntc content datastore -> a readable summary (counts + content codenames).
+    if (result.decompressed.size() >= 12 && result.decompressed[0] == 'P' && result.decompressed[1] == 'F' &&
+        std::memcmp(result.decompressed.data() + 8, "cntc", 4) == 0) {
+        std::wstring summary = parse_cntc_summary(result.decompressed);
+        if (!summary.empty()) {
+            // Every external asset fileId the content references -> an interactive list.
+            result.content_asset_ids = cntc_referenced_asset_ids(result.decompressed, 100000);
+            summary += L"\r\nReferences ";
+            summary += std::to_wstring(result.content_asset_ids.size());
+            summary += L" external asset fileIds (textures / models / audio / materials).\r\n"
+                       L"Select one on the left to preview it here.";
+            result.kind = result.content_asset_ids.empty() ? PreviewKind::Text : PreviewKind::Content;
+            result.text_preview = std::move(summary);
+            return result;
+        }
     }
 
     // PF packfile with a prop-placement chunk -> map scene (mapc/area). Checked

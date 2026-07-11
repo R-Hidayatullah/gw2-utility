@@ -10,7 +10,7 @@ namespace gw2mft {
 
 namespace {
 
-constexpr int kColumnCount = 7;
+constexpr int kColumnCount = 9;
 
 struct MftListState {
     Gw2Dat* data_gw2 = nullptr;
@@ -19,6 +19,7 @@ struct MftListState {
     int sort_column = -1;              // -1 == natural (archive) order
     bool sort_ascending = true;
     SelectionCallback on_select;
+    MetadataProvider meta_provider;    // Type/Container columns (from an index DB)
 };
 
 MftListState* get_state(HWND listview) {
@@ -139,6 +140,17 @@ void fill_disp_info(MftListState& state, NMLVDISPINFOW& info) {
     case 6:
         swprintf(info.item.pszText, info.item.cchTextMax, L"%u", mft ? mft->compression_flag : 0);
         break;
+    case 7:
+    case 8: {
+        if (!state.meta_provider) break;
+        std::wstring type, container;
+        if (state.meta_provider(base_entry.base_id, type, container)) {
+            const std::wstring& v = (info.item.iSubItem == 7) ? type : container;
+            wcsncpy(info.item.pszText, v.c_str(), static_cast<size_t>(info.item.cchTextMax) - 1);
+            info.item.pszText[info.item.cchTextMax - 1] = L'\0';
+        }
+        break;
+    }
     default:
         break;
     }
@@ -164,6 +176,8 @@ HWND create(HWND parent, HINSTANCE instance, int control_id) {
     add_column(listview, 4, L"Size", 90);
     add_column(listview, 5, L"Uncompressed", 100);
     add_column(listview, 6, L"Comp", 50);
+    add_column(listview, 7, L"Type", 70);
+    add_column(listview, 8, L"Container", 80);
 
     SetWindowLongPtrW(listview, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(new MftListState()));
     return listview;
@@ -222,6 +236,14 @@ void set_selection_callback(HWND listview, SelectionCallback callback) {
     MftListState* state = get_state(listview);
     if (state != nullptr) {
         state->on_select = std::move(callback);
+    }
+}
+
+void set_metadata_provider(HWND listview, MetadataProvider provider) {
+    MftListState* state = get_state(listview);
+    if (state != nullptr) {
+        state->meta_provider = std::move(provider);
+        InvalidateRect(listview, nullptr, TRUE);
     }
 }
 

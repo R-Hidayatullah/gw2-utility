@@ -64,7 +64,18 @@ struct Mesh {
 inline uint64_t tokenizeBoneName(const std::string& name) {
     const char* s = name.c_str();
     size_t n = name.size();
-    if (n >= 5 && std::strncmp(s, "bone:", 5) == 0) { s += 5; n -= 5; }
+    // Strip the namespace prefix up to and including the LAST ':' and tokenize only
+    // the leaf. GW2 bone names are namespaced ("bone:COG", "Rig1:bone:BCOG" for a
+    // merged multi-rig model, "ignore:FK_LowTeeth"/"actionpoint:MountA" for facial /
+    // helper bones); the engine keys on the leaf, and only the leaf is unique. A prior
+    // "strip up to last 'bone:'" left non-"bone:" namespaces mis-tokenized: their long
+    // prefixes overflowed the 12-char/60-bit pack and COLLIDED (e.g. "ignore:FK_LowTeeth"
+    // aliased "ignore:FK_LowlidR"), so a mesh vertex bound to the jaw/teeth bone resolved
+    // to the wrong bone and the mouth geometry skinned onto the body. Verified: fileId
+    // 1762011 (springer) 88/101 -> 101/101 bindings resolve with 0 collisions; fileId
+    // 904350 (Marjory & Kasmeer) 200/203 -> 203/203, 0 collisions. Unprefixed names
+    // (rfind == npos) are unchanged.
+    if (size_t p = name.rfind(':'); p != std::string::npos) { s += p + 1; n -= p + 1; }
     size_t end = n;
     uint64_t top = 0;
     if (n >= 2) {
@@ -167,6 +178,12 @@ struct AmatShader {
     bool isPixel = false;
     std::vector<uint8_t> dxbc;  // bgfx VSH/FSH blob (contains DXBC)
     std::vector<AmatSamplerBind> samplers;
+    // Ordered list of material-constant name tokens (AmatShaderConstant.token,
+    // token32). Same order as the shader's material-constant uniforms in the bgfx
+    // uniform table, so index i pairs constantTokens[i] <-> the i-th non-global
+    // uniform. A MODL MatConstant whose token matches one of these binds its value
+    // to that uniform (no name-hash needed: token-to-token match).
+    std::vector<uint32_t> constantTokens;
 };
 struct AmatSet {
     int vsIndex = -1, psIndex = -1;      // best OPAQUE-pass effect (highest sampler count, passFlags without the transparent bit)
@@ -453,6 +470,17 @@ public:
                             if (fieldOffset(smT, "textureIndex", o3, f3)) b.textureIndex = rd32(se2 + o3);
                             if (fieldOffset(smT, "textureSlot", o3, f3)) b.textureSlot = rd32(se2 + o3);
                             sh.samplers.push_back(b);
+                        }
+                    }
+                    // constants[] (AmatShaderConstantV*) -- ordered token32 list that
+                    // pairs with the shader's material-constant uniforms.
+                    if (fieldOffset(bin, "constants", o2, f2)) {
+                        std::string cT = f2["element"].value("struct", std::string());
+                        int cSize = typeSize(cT);
+                        uint32_t cn = 0; size_t cb2 = arrayAt(bs + o2, cn);
+                        for (uint32_t j = 0; cb2 && cSize > 0 && j < cn; ++j) {
+                            size_t ce = cb2 + (size_t)j * cSize; size_t o3; json f3;
+                            if (fieldOffset(cT, "token", o3, f3)) sh.constantTokens.push_back(rd32(ce + o3));
                         }
                     }
                 }

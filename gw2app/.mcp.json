@@ -14,6 +14,16 @@
         "GW2_DAT_PATH": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Guild Wars 2\\Gw2.dat",
         "GW2_LOCAL_DAT_PATH": "C:\\Users\\Ridwan Hidayatullah\\AppData\\Roaming\\Guild Wars 2\\Local.dat"
       }
+    },
+    "gw2index": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "C:\\Users\\Ridwan Hidayatullah\\Documents\\gw2app\\gw2index\\mcp\\server.py"
+      ],
+      "env": {
+        "GW2_INDEX_DB": "C:\\Users\\Ridwan Hidayatullah\\Documents\\gw2app\\gw2index\\local_index.db"
+      }
     }
   }
 }

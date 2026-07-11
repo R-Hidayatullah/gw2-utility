@@ -1,0 +1,279 @@
+{
+ "DEPTH/SHADOW vs (camera-only)": {
+  "total": 27,
+  "examples": [
+   {
+    "index": 1140,
+    "cso": "1140_V_00000000.cso",
+    "va": "0x141BE6A04",
+    "uniforms": [
+     "ViewProjection"
+    ]
+   },
+   {
+    "index": 1143,
+    "cso": "1143_V_00000000.cso",
+    "va": "0x141BE71DC",
+    "uniforms": [
+     "ViewProjection"
+    ]
+   },
+   {
+    "index": 1275,
+    "cso": "1275_V_00000000.cso",
+    "va": "0x141C168A4",
+    "uniforms": [
+     "ViewProjection"
+    ]
+   }
+  ]
+ },
+ "FORWARD SH-lit ps (sun+shadow)": {
+  "total": 20,
+  "examples": [
+   {
+    "index": 1428,
+    "cso": "1428_F_00000000.cso",
+    "va": "0x141C43DEC",
+    "uniforms": [
+     "StencilId",
+     "WorldToShadowD",
+     "shRed",
+     "shGreen",
+     "shBlue",
+     "shSun",
+     "shSunColor",
+     "shSunData",
+     "gSs15"
+    ]
+   },
+   {
+    "index": 1437,
+    "cso": "1437_F_00000000.cso",
+    "va": "0x141C48AE4",
+    "uniforms": [
+     "fxclr",
+     "WorldToShadowD",
+     "shRed",
+     "shGreen",
+     "shBlue",
+     "shSun",
+     "shSunColor",
+     "shSunData",
+     "AlphaRef",
+     "gSs15"
+    ]
+   },
+   {
+    "index": 1742,
+    "cso": "1742_F_00000000.cso",
+    "va": "0x141D94434",
+    "uniforms": [
+     "StencilId",
+     "WorldToShadowD",
+     "shRed",
+     "shGreen",
+     "shBlue",
+     "shSun",
+     "shSunColor",
+     "shSunData",
+     "gSs0",
+     "gSs15"
+    ]
+   }
+  ]
+ },
+ "SH-ambient-only ps": {
+  "total": 16,
+  "examples": [
+   {
+    "index": 1611,
+    "cso": "1611_F_00000000.cso",
+    "va": "0x141D52ED4",
+    "uniforms": [
+     "FogColorFar",
+     "shRed",
+     "shGreen",
+     "shBlue",
+     "skypara",
+     "sunDir",
+     "sunClr",
+     "ss0"
+    ]
+   },
+   {
+    "index": 1613,
+    "cso": "1613_F_00000000.cso",
+    "va": "0x141D53C7C",
+    "uniforms": [
+     "FogColorFar",
+     "shRed",
+     "shGreen",
+     "shBlue",
+     "skypara",
+     "sunDir",
+     "sunClr",
+     "ss0",
+     "ss1"
+    ]
+   },
+   {
+    "index": 1615,
+    "cso": "1615_F_00000000.cso",
+    "va": "0x141D54AB4",
+    "uniforms": [
+     "FogColorFar",
+     "shRed",
+     "shGreen",
+     "shBlue",
+     "skypara",
+     "sunDir",
+     "sunClr",
+     "ss0"
+    ]
+   }
+  ]
+ },
+ "LIGHTBUFFER deferred-sample ps": {
+  "total": 87,
+  "examples": [
+   {
+    "index": 1274,
+    "cso": "1274_F_00000000.cso",
+    "va": "0x141C16554",
+    "uniforms": [
+     "LightBuffer",
+     "ScreenDims",
+     "fxclr",
+     "StippleDensity",
+     "gSs12"
+    ]
+   },
+   {
+    "index": 1284,
+    "cso": "1284_F_00000000.cso",
+    "va": "0x141C187FC",
+    "uniforms": [
+     "LightBuffer"
+    ]
+   },
+   {
+    "index": 1310,
+    "cso": "1310_F_00000000.cso",
+    "va": "0x141C1F264",
+    "uniforms": [
+     "LightBuffer",
+     "ScreenDims",
+     "fxclr",
+     "StippleDensity",
+     "gSs12"
+    ]
+   }
+  ]
+ },
+ "POST fullscreen ps (ModelColor)": {
+  "total": 20,
+  "examples": [
+   {
+    "index": 1135,
+    "cso": "1135_F_00000000.cso",
+    "va": "0x141BE6284",
+    "uniforms": [
+     "ModelColor",
+     "fxclr"
+    ]
+   },
+   {
+    "index": 1136,
+    "cso": "1136_F_00000000.cso",
+    "va": "0x141BE6444",
+    "uniforms": [
+     "ModelColor",
+     "fxclr"
+    ]
+   },
+   {
+    "index": 1137,
+    "cso": "1137_F_00000000.cso",
+    "va": "0x141BE65A4",
+    "uniforms": [
+     "ModelColor"
+    ]
+   }
+  ]
+ },
+ "COMPUTE (post/exposure/culling)": {
+  "total": 11,
+  "examples": [
+   {
+    "index": 2215,
+    "cso": "2215_C_00000000.cso",
+    "uniforms": [
+     "ExposureControl"
+    ]
+   },
+   {
+    "index": 2216,
+    "cso": "2216_C_00000000.cso",
+    "uniforms": []
+   },
+   {
+    "index": 2217,
+    "cso": "2217_C_00000000.cso",
+    "uniforms": [
+     "Exposures"
+    ]
+   },
+   {
+    "index": 2218,
+    "cso": "2218_C_00000000.cso",
+    "uniforms": [
+     "ExposureControl"
+    ]
+   },
+   {
+    "index": 2221,
+    "cso": "2221_C_00000000.cso",
+    "uniforms": [
+     "HistParams"
+    ]
+   },
+   {
+    "index": 2222,
+    "cso": "2222_C_00000000.cso",
+    "uniforms": [
+     "HistParams",
+     "HistParams2"
+    ]
+   },
+   {
+    "index": 2223,
+    "cso": "2223_C_00000000.cso",
+    "uniforms": [
+     "Exposures",
+     "FusionExponents"
+    ]
+   },
+   {
+    "index": 2224,
+    "cso": "2224_C_00000000.cso",
+    "uniforms": []
+   },
+   {
+    "index": 2225,
+    "cso": "2225_C_00000000.cso",
+    "uniforms": []
+   },
+   {
+    "index": 2226,
+    "cso": "2226_C_00000000.cso",
+    "uniforms": []
+   },
+   {
+    "index": 2227,
+    "cso": "2227_C_00000000.cso",
+    "uniforms": []
+   }
+  ]
+ }
+}

@@ -17,6 +17,8 @@ enum class PreviewKind {
     Map,   // mapc/area packfile with placed props -> map scene below
     Text,  // printable text (html/css/js/xml/...) -> text_preview
     Strs,  // "strs" string table -> text_preview
+    Audio, // ASND packfile / raw audio -> audio_data below (MP3/Ogg)
+    Content, // cntc content datastore -> content_asset_ids (interactive asset browser)
 };
 
 // One vertex, laid out exactly like gw2viewer.cpp's GVertex (14 floats:
@@ -78,6 +80,13 @@ struct GameSamplerCPU {
     int gameTex = -1;  // index into ModelPreview::textures, or -1 for a global stand-in
     int global = 0;    // 0 = material texture (gameTex), 1 = white 1x1, 2 = env cubemap grey
 };
+// A resolved per-material constant: the MODL MatConstant value written straight
+// into the shader cbuffer at `byteOff`. Bound by token (AMAT constants[] order
+// pairs with the shader's material uniforms), so no name-hash is needed.
+struct GameConstOverride {
+    int byteOff = 0;
+    float value[4] = {0, 0, 0, 0};
+};
 struct GameMaterial {
     uint32_t index = 0;          // matches ModelMaterialCPU::index / mesh materialIndex
     bool ok = false;             // false = no game shaders available (fall back to reconstruction)
@@ -85,6 +94,9 @@ struct GameMaterial {
     std::vector<GameShaderUniform> vsUniforms, psUniforms;
     uint32_t vsConstBuf = 0, psConstBuf = 0;
     std::vector<GameSamplerCPU> samplers;
+    // Per-material constant values (glow/spec/scroll/tint/etc.) resolved from the
+    // MODL MatConstants, applied after the shared uniform fill each frame.
+    std::vector<GameConstOverride> vsConsts, psConsts;
     uint64_t renderState = 0;    // bgfx 64-bit state word (blend / depth-write)
 };
 
@@ -164,6 +176,12 @@ struct MapScene {
     uint32_t loadedModels = 0;
 };
 
+// One decoded audio sound (kind == Audio). ASND/raw = a single clip; ABNK bank = N.
+struct AudioClipCPU {
+    std::string codec;         // "MP3", "Ogg Vorbis", ...
+    std::vector<uint8_t> data; // a complete audio file, ready for gw2snd::play/probe
+};
+
 struct ExtractedEntry {
     std::vector<uint8_t> compressed;   // raw on-disk bytes for this MFT entry (CRC32C still present) -- "before"
     std::vector<uint8_t> decompressed; // the fully decompressed file bytes -- "after" (real .atex/.dds/.png/... ),
@@ -194,6 +212,14 @@ struct ExtractedEntry {
 
     // Filled for kind == Map (a mapc/area packfile with a prp2 prop chunk).
     std::shared_ptr<MapScene> map;
+
+    // Filled for kind == Audio: one entry per embedded sound (an ASND / raw asnd has
+    // one; an ABNK bank has several). Each holds a complete audio file (MP3/Ogg/...).
+    std::vector<AudioClipCPU> audio_clips;
+
+    // Filled for kind == Content (cntc): every external asset fileId the content blob
+    // references (textures/models/audio/...). The UI lists these; clicking one loads it.
+    std::vector<uint32_t> content_asset_ids;
 };
 
 // Extracts and decompresses one MFT entry.
