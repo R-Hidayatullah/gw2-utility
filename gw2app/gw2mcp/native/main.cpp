@@ -898,7 +898,7 @@ void cmd_skel(const Args& a) {
     json validate = json::object();
     if (!model.anim.clips.empty() && !model.anim.clips[clipIdx].rawGranny.empty() && sk.present) {
         const auto& raw = model.anim.clips[clipIdx].rawGranny;
-        granny::Anim anim = granny::parse(raw.data(), raw.size());
+        granny::Anim anim = granny::parse(raw.data(), raw.size(), model.anim.clips[clipIdx].ptrSize);
         validate["clipName"] = anim.name;
         validate["duration"] = anim.duration;
         validate["trackCount"] = anim.tracks.size();

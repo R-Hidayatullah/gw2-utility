@@ -90,6 +90,16 @@ Mat4 rotX(float a) {
     r.m[5] = c; r.m[6] = s; r.m[9] = -s; r.m[10] = c;
     return r;
 }
+// Row-vector point transform (p is treated as [x y z 1], translation in the
+// matrix's last row) -- used to get a submesh's world/view-space depth for
+// back-to-front transparent sorting.
+Vec3 transformPoint(Vec3 p, const Mat4& m) {
+    return {
+        p.x * m.m[0] + p.y * m.m[4] + p.z * m.m[8] + m.m[12],
+        p.x * m.m[1] + p.y * m.m[5] + p.z * m.m[9] + m.m[13],
+        p.x * m.m[2] + p.y * m.m[6] + p.z * m.m[10] + m.m[14],
+    };
+}
 
 // Same HLSL as gw2viewer.cpp (albedo * lambert + hemispheric ambient, optional
 // 3DCX normal mapping, effect-material emissive path).
@@ -241,6 +251,11 @@ struct MaterialGPU {
     float tint[4] = {1, 1, 1, 1};
     bool isEffect = false;
     int kind = 0; // 0 normal, 1 terrain, 2 water
+    // Real per-material blend state decoded from the AMAT's bgfx render state
+    // (via make_blend_state_from_bgfx), when the game-shader extraction
+    // resolved one for this material. Null => caller falls back to the single
+    // shared g_blendAlpha (SrcAlpha/InvSrcAlpha) for the effect pass.
+    ComPtr<ID3D11BlendState> blend;
 };
 struct SubMesh {
     UINT indexStart = 0, indexCount = 0;
@@ -294,6 +309,8 @@ bool  g_post_ready = false;
 float g_post_exp = 1.9f;    // exposure multiply (env GW2_POSTEXP)
 float g_post_amb = 0.03f;   // ambient shadow lift (env GW2_POSTAMB)
 float g_post_gamma = 1.18f; // >1 brightens midtones (env GW2_POSTGAMMA)
+const float kPostExpMax = 1.9f; // default/max exposure (tuned for DARK models)
+bool g_post_exp_env = false;    // GW2_POSTEXP forced a fixed exposure -> skip auto
 // ---- light pre-pass (Option 2): reconstruct the screen-space light-accumulation
 // buffer GW2's DEFERRED materials sample (gSs14). A world-normal G-buffer feeds a
 // fullscreen lighting pass (ambient + sun*N.L); its output is bound at each
@@ -572,7 +589,7 @@ bool init_pipeline() {
 
     // Post-process shaders + its 16-byte cbuffer (best-effort; darkness fix only).
     {
-        if (const char* e = std::getenv("GW2_POSTEXP"))   { double v = std::atof(e); if (v > 0.01) g_post_exp = (float)v; }
+        if (const char* e = std::getenv("GW2_POSTEXP"))   { double v = std::atof(e); if (v > 0.01) { g_post_exp = (float)v; g_post_exp_env = true; } }
         if (const char* e = std::getenv("GW2_POSTAMB"))   { double v = std::atof(e); if (v >= 0)   g_post_amb = (float)v; }
         if (const char* e = std::getenv("GW2_POSTGAMMA")) { double v = std::atof(e); if (v > 0.05) g_post_gamma = (float)v; }
         ComPtr<ID3DBlob> pvs, pps, perr;
@@ -768,6 +785,36 @@ static const D3D11_BLEND_OP kBgfxBlendEquation[5] = {
 };
 D3D11_BLEND bgfx_blend(uint32_t v, int col = 0) {
     return (v < 14) ? kBgfxBlendFactor[v][col & 1] : D3D11_BLEND_ONE;
+}
+
+// Decodes a bgfx 64-bit render-state word's blend fields into a real D3D11
+// blend state (BGFX_STATE_BLEND_SHIFT=12, EQUATION_SHIFT=28,
+// ALPHA_TO_COVERAGE=bit35 -- same layout bgfx's D3D11 renderer uses). Returns
+// null when the word has no blend bits set (opaque / unknown). Shared by the
+// game-shader material path (build_game_materials) and the reconstruction
+// material path (build below) so BOTH draw transparent materials with the
+// material's own real blend function instead of a single hardcoded
+// SrcAlpha/InvSrcAlpha guess.
+ComPtr<ID3D11BlendState> make_blend_state_from_bgfx(uint64_t st) {
+    ComPtr<ID3D11BlendState> out;
+    if (!g_dev) return out;
+    uint32_t blend = (uint32_t)((st >> 12) & 0xffff);
+    if (blend == 0) return out;
+    uint32_t equ = (uint32_t)((st >> 28) & 0x3f);
+    uint32_t srcRGB = blend & 0xf, dstRGB = (blend >> 4) & 0xf, srcA = (blend >> 8) & 0xf, dstA = (blend >> 12) & 0xf;
+    uint32_t equRGB = equ & 0x7, equA = (equ >> 3) & 0x7;
+    D3D11_BLEND_DESC bd{};
+    bd.AlphaToCoverageEnable = (st & 0x0000000800000000ull) != 0; // BGFX_STATE_BLEND_ALPHA_TO_COVERAGE
+    bd.RenderTarget[0].BlendEnable = TRUE;
+    bd.RenderTarget[0].SrcBlend = bgfx_blend(srcRGB, 0);
+    bd.RenderTarget[0].DestBlend = bgfx_blend(dstRGB, 0);
+    bd.RenderTarget[0].BlendOp = kBgfxBlendEquation[equRGB < 5 ? equRGB : 0];
+    bd.RenderTarget[0].SrcBlendAlpha = bgfx_blend(srcA ? srcA : 2, 1);
+    bd.RenderTarget[0].DestBlendAlpha = bgfx_blend(dstA ? dstA : 1, 1);
+    bd.RenderTarget[0].BlendOpAlpha = kBgfxBlendEquation[equA < 5 ? equA : 0];
+    bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    g_dev->CreateBlendState(&bd, &out);
+    return out;
 }
 
 // Size a cbuffer to the largest register the shader actually reads (bgfx's
@@ -1139,6 +1186,13 @@ void build_game_materials(const ModelPreview& model) {
     for (const auto& gm : model.gameMaterials) maxIdx = std::max(maxIdx, gm.index);
     g_game_mats.resize(maxIdx + 1);
 
+    // Auto-exposure accumulator: mean luminance of the DIFFUSE (slot 0) textures,
+    // alpha-weighted (transparent texels don't count). GW2 uses histogram auto-
+    // exposure; we approximate it from albedo so a pale/white model (e.g. fileId
+    // 1925381) doesn't blow out to a glaring white under the fixed exposure that's
+    // tuned for dark models. See the exposure calc after the material loop.
+    double albLumSum = 0.0, albWSum = 0.0;
+
     for (const auto& c : model.gameMaterials) {
         if (!c.ok || c.vsDXBC.empty() || c.psDXBC.empty()) continue;
         GameMatGPU g;
@@ -1195,6 +1249,19 @@ void build_game_materials(const ModelPreview& model) {
             else if (s.gameTex >= 0 && s.gameTex < static_cast<int>(model.textures.size())) {
                 const auto& t = model.textures[s.gameTex];
                 g.srv[s.slot] = make_srv(t.rgba, t.width, t.height);
+                // Sample the diffuse (slot 0) albedo for auto-exposure (subsampled,
+                // alpha-weighted). Only slot 0 = the base colour drives brightness.
+                if (s.slot == 0 && t.width > 0 && t.height > 0 && t.rgba.size() >= (size_t)t.width * t.height * 4) {
+                    size_t n = (size_t)t.width * t.height;
+                    size_t step = std::max<size_t>(1, n / 4096); // cap ~4k samples/tex
+                    for (size_t p = 0; p < n; p += step) {
+                        const uint8_t* px = &t.rgba[p * 4];
+                        double a = px[3] / 255.0;
+                        double lum = (0.299 * px[0] + 0.587 * px[1] + 0.114 * px[2]) / 255.0;
+                        albLumSum += lum * a;
+                        albWSum += a;
+                    }
+                }
             }
         }
 
@@ -1206,30 +1273,37 @@ void build_game_materials(const ModelPreview& model) {
         // ALPHA_TO_COVERAGE=bit35.
         uint64_t st = c.renderState;
         g.renderState = st;
-        uint32_t blend = (uint32_t)((st >> 12) & 0xffff);
-        uint32_t equ   = (uint32_t)((st >> 28) & 0x3f);
-        uint32_t srcRGB = blend & 0xf, dstRGB = (blend >> 4) & 0xf, srcA = (blend >> 8) & 0xf, dstA = (blend >> 12) & 0xf;
-        uint32_t equRGB = equ & 0x7, equA = (equ >> 3) & 0x7;
-        bool blendOn = blend != 0;
         g.depthWrite = (st & 0x0000004000000000ull) != 0;
-        if (blendOn) {
-            D3D11_BLEND_DESC bd{};
-            bd.AlphaToCoverageEnable = (st & 0x0000000800000000ull) != 0; // BGFX_STATE_BLEND_ALPHA_TO_COVERAGE
-            bd.RenderTarget[0].BlendEnable = TRUE;
-            bd.RenderTarget[0].SrcBlend = bgfx_blend(srcRGB, 0);
-            bd.RenderTarget[0].DestBlend = bgfx_blend(dstRGB, 0);
-            bd.RenderTarget[0].BlendOp = kBgfxBlendEquation[equRGB < 5 ? equRGB : 0];
-            bd.RenderTarget[0].SrcBlendAlpha = bgfx_blend(srcA ? srcA : 2, 1);
-            bd.RenderTarget[0].DestBlendAlpha = bgfx_blend(dstA ? dstA : 1, 1);
-            bd.RenderTarget[0].BlendOpAlpha = kBgfxBlendEquation[equA < 5 ? equA : 0];
-            bd.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-            g_dev->CreateBlendState(&bd, &g.blend);
-        }
+        g.blend = make_blend_state_from_bgfx(st);
         g.ok = true;
         if (c.index < g_game_mats.size()) {
             g_game_mats[c.index] = std::move(g);
             g_game_any_ok = true;
         }
+    }
+
+    // Albedo-adaptive exposure (skipped if GW2_POSTEXP forced a value, or
+    // GW2_AUTOEXP=0). Dark models keep the full kPostExpMax (1.9) so nothing that
+    // was already tuned gets dimmer; only when the mean albedo climbs past a knee
+    // do we scale exposure down, so a pale/white model stops glaring. Verified so
+    // the glare on fileId 1925381 clears while 291977 / Deimos are untouched.
+    bool autoOn = true;
+    if (const char* e = std::getenv("GW2_AUTOEXP")) autoOn = std::atoi(e) != 0;
+    if (autoOn && !g_post_exp_env && albWSum > 1.0) {
+        float albLum = static_cast<float>(albLumSum / albWSum); // ~[0,1]
+        // Below the knee = "dark" -> keep full exposure (no regression on the
+        // already-tuned dark models: jade 291977 albedo~0.27, Deimos~0.14). Above
+        // it, scale exposure down with a >1 exponent so bright/pale albedo drops
+        // fast enough to stop glaring (calibrated: albedo 0.45 -> ~0.95, which
+        // renders fileId 1925381 with no blown highlights).
+        const float knee = 0.30f;
+        float exp = kPostExpMax;
+        if (albLum > knee) exp = kPostExpMax * std::pow(knee / albLum, 1.7f);
+        g_post_exp = std::clamp(exp, 0.6f, kPostExpMax);
+        if (std::getenv("GW2_EXPDBG"))
+            std::fprintf(stderr, "[autoexp] meanAlbedo=%.3f -> exposure=%.3f\n", albLum, g_post_exp);
+    } else if (!g_post_exp_env) {
+        g_post_exp = kPostExpMax;
     }
 }
 
@@ -1292,6 +1366,7 @@ void set_model(const ModelPreview& model) {
             const auto& t = model.textures[m.normalTex];
             g.srvNormal = make_srv(t.rgba, t.width, t.height);
         }
+        if (m.hasRenderState) g.blend = make_blend_state_from_bgfx(m.renderState);
         if (m.index < g_mats.size()) g_mats[m.index] = std::move(g);
     }
 
@@ -1376,6 +1451,7 @@ bool upload_scene_model(const ModelPreview& model, SceneModelGPU& out) {
             const auto& t = model.textures[m.normalTex];
             g.srvNormal = make_srv(t.rgba, t.width, t.height);
         }
+        if (m.hasRenderState) g.blend = make_blend_state_from_bgfx(m.renderState);
         if (m.index < out.mats.size()) out.mats[m.index] = std::move(g);
     }
     out.ok = true;
@@ -1577,25 +1653,47 @@ void render_scene() {
     const float bf[4] = {0, 0, 0, 0};
     UINT stride = sizeof(GVertex), off = 0;
 
+    // One draw item, gathered so the effect (transparent) pass can be sorted
+    // back-to-front across every visible instance/submesh before drawing --
+    // otherwise overlapping translucent textures (e.g. glass, water, glow
+    // masks) composite in whatever order the scene happened to store them,
+    // which is what made them look "berantakan" (out of order).
+    struct EffectDraw {
+        const SceneModelGPU* sm;
+        Mat4 modelMat, mvp;
+        const SubMesh* sub;
+        const MaterialGPU* mat;
+        float viewDepthSq;
+    };
+
     int passes = textured ? 2 : 1;
     for (int pass = 0; pass < passes; ++pass) {
         bool effectPass = textured && (pass == 1);
-        g_ctx->OMSetBlendState(effectPass ? g_blendAlpha.Get() : g_blendOpaque.Get(), bf, 0xffffffff);
         g_ctx->OMSetDepthStencilState(effectPass ? g_dssNoWrite.Get() : g_dss.Get(), 0);
+
+        std::vector<EffectDraw> effectDraws;
+        if (!effectPass) g_ctx->OMSetBlendState(g_blendOpaque.Get(), bf, 0xffffffff);
+
         for (const auto& in : g_scene_insts) {
             if (!g_layer_visible[in.layer]) continue;
             const SceneModelGPU& sm = g_scene_models[in.model];
             if (!sm.ok) continue;
             Mat4 modelMat = mul(in.world, sceneRot);
             Mat4 mvp = mul(in.world, VP);
-            ID3D11Buffer* vbs[] = {sm.vb.Get()};
-            g_ctx->IASetVertexBuffers(0, 1, vbs, &stride, &off);
-            g_ctx->IASetIndexBuffer(sm.ib.Get(), DXGI_FORMAT_R32_UINT, 0);
             for (const auto& s : sm.subs) {
                 const MaterialGPU* mat = (s.matIndex < sm.mats.size()) ? &sm.mats[s.matIndex] : nullptr;
                 bool isBlend = mat && (mat->kind == 2 || mat->kind == 3); // water + collision blend
                 bool isEffect = mat && (mat->isEffect || isBlend);        // rendered in the effect pass
                 if (textured && isEffect != effectPass) continue;
+                if (effectPass) {
+                    Vec3 wp = transformPoint({s.center[0], s.center[1], s.center[2]}, modelMat);
+                    Vec3 d = sub(wp, eye);
+                    effectDraws.push_back({&sm, modelMat, mvp, &s, mat, dot(d, d)});
+                    continue;
+                }
+                ID3D11Buffer* vbs[] = {sm.vb.Get()};
+                g_ctx->IASetVertexBuffers(0, 1, vbs, &stride, &off);
+                g_ctx->IASetIndexBuffer(sm.ib.Get(), DXGI_FORMAT_R32_UINT, 0);
                 CB cb{};
                 cb.model = modelMat;
                 cb.mvp = mvp;
@@ -1622,6 +1720,40 @@ void render_scene() {
                 g_ctx->PSSetShaderResources(0, 2, srvs);
                 g_ctx->DrawIndexed(s.indexCount, s.indexStart, 0);
             }
+        }
+
+        if (!effectPass) continue;
+
+        // Farthest-from-camera first so nearer translucent surfaces composite
+        // on top of what's behind them.
+        std::sort(effectDraws.begin(), effectDraws.end(),
+                  [](const EffectDraw& a, const EffectDraw& b) { return a.viewDepthSq > b.viewDepthSq; });
+
+        for (const auto& d : effectDraws) {
+            const MaterialGPU* mat = d.mat;
+            g_ctx->OMSetBlendState(mat && mat->blend ? mat->blend.Get() : g_blendAlpha.Get(), bf, 0xffffffff);
+            ID3D11Buffer* vbs[] = {d.sm->vb.Get()};
+            g_ctx->IASetVertexBuffers(0, 1, vbs, &stride, &off);
+            g_ctx->IASetIndexBuffer(d.sm->ib.Get(), DXGI_FORMAT_R32_UINT, 0);
+            CB cb{};
+            cb.model = d.modelMat;
+            cb.mvp = d.mvp;
+            cb.lx = L.x; cb.ly = L.y; cb.lz = L.z;
+            cb.hasSkin = 0.0f;
+            cb.matKind = mat ? static_cast<float>(mat->kind) : 0.0f;
+            cb.hasTex = (mat && mat->srv) ? 1.0f : 0.0f;
+            cb.hasNormal = (mat && mat->srvNormal) ? 1.0f : 0.0f;
+            cb.isEffect = (mat && mat->isEffect) ? 1.0f : 0.0f;
+            cb.tintR = mat ? mat->tint[0] : 1.0f; cb.tintG = mat ? mat->tint[1] : 1.0f;
+            cb.tintB = mat ? mat->tint[2] : 1.0f; cb.tintA = mat ? mat->tint[3] : 1.0f;
+            D3D11_MAPPED_SUBRESOURCE ms;
+            if (SUCCEEDED(g_ctx->Map(g_cb.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms))) {
+                std::memcpy(ms.pData, &cb, sizeof cb);
+                g_ctx->Unmap(g_cb.Get(), 0);
+            }
+            ID3D11ShaderResourceView* srvs[2] = {mat ? mat->srv.Get() : nullptr, mat ? mat->srvNormal.Get() : nullptr};
+            g_ctx->PSSetShaderResources(0, 2, srvs);
+            g_ctx->DrawIndexed(d.sub->indexCount, d.sub->indexStart, 0);
         }
     }
 }
@@ -2061,16 +2193,34 @@ void render() {
     g_ctx->PSSetSamplers(0, 1, samps);
 
     // Full mode does the two-pass opaque/effect split; Plain/Wireframe draw
-    // everything once, opaque and untextured.
+    // everything once, opaque and untextured. The effect pass is gathered and
+    // sorted back-to-front (by distance from the camera) before drawing, and
+    // each material draws with its OWN resolved blend state when known --
+    // drawing translucent submeshes in raw storage order with one hardcoded
+    // blend mode is what made overlapping transparent textures look
+    // "berantakan" (out of order).
+    struct EffectDraw {
+        const SubMesh* sub;
+        const MaterialGPU* mat;
+        float viewDepthSq;
+    };
     int passes = textured ? 2 : 1;
     for (int pass = 0; pass < passes; ++pass) {
         bool effectPass = textured && (pass == 1);
-        g_ctx->OMSetBlendState(effectPass ? g_blendAlpha.Get() : g_blendOpaque.Get(), bf, 0xffffffff);
         g_ctx->OMSetDepthStencilState(effectPass ? g_dssNoWrite.Get() : g_dss.Get(), 0);
+        if (!effectPass) g_ctx->OMSetBlendState(g_blendOpaque.Get(), bf, 0xffffffff);
+
+        std::vector<EffectDraw> effectDraws;
         for (const auto& s : g_subs) {
             const MaterialGPU* mat = (s.matIndex < g_mats.size()) ? &g_mats[s.matIndex] : nullptr;
             bool isEffect = mat && mat->isEffect;
             if (textured && isEffect != effectPass) continue;
+            if (effectPass) {
+                Vec3 wp = transformPoint({s.center[0], s.center[1], s.center[2]}, model);
+                Vec3 d = sub(wp, eye);
+                effectDraws.push_back({&s, mat, dot(d, d)});
+                continue;
+            }
 
             CB cb{};
             cb.model = model;
@@ -2098,6 +2248,36 @@ void render() {
                                                  textured && mat ? mat->srvNormal.Get() : nullptr};
             g_ctx->PSSetShaderResources(0, 2, srvs);
             g_ctx->DrawIndexed(s.indexCount, s.indexStart, 0);
+        }
+
+        if (!effectPass) continue;
+
+        std::sort(effectDraws.begin(), effectDraws.end(),
+                  [](const EffectDraw& a, const EffectDraw& b) { return a.viewDepthSq > b.viewDepthSq; });
+
+        for (const auto& d : effectDraws) {
+            const MaterialGPU* mat = d.mat;
+            g_ctx->OMSetBlendState(mat && mat->blend ? mat->blend.Get() : g_blendAlpha.Get(), bf, 0xffffffff);
+            CB cb{};
+            cb.model = model;
+            cb.mvp = mvp;
+            cb.lx = L.x; cb.ly = L.y; cb.lz = L.z;
+            cb.hasSkin = (d.sub->hasSkin && g_skin_ok) ? 1.0f : 0.0f;
+            cb.hasTex = (mat && mat->srv) ? 1.0f : 0.0f;
+            cb.hasNormal = (mat && mat->srvNormal) ? 1.0f : 0.0f;
+            cb.isEffect = (mat && mat->isEffect) ? 1.0f : 0.0f;
+            cb.tintR = mat ? mat->tint[0] : 1.0f;
+            cb.tintG = mat ? mat->tint[1] : 1.0f;
+            cb.tintB = mat ? mat->tint[2] : 1.0f;
+            cb.tintA = mat ? mat->tint[3] : 1.0f;
+            D3D11_MAPPED_SUBRESOURCE ms;
+            if (SUCCEEDED(g_ctx->Map(g_cb.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms))) {
+                std::memcpy(ms.pData, &cb, sizeof cb);
+                g_ctx->Unmap(g_cb.Get(), 0);
+            }
+            ID3D11ShaderResourceView* srvs[2] = {mat ? mat->srv.Get() : nullptr, mat ? mat->srvNormal.Get() : nullptr};
+            g_ctx->PSSetShaderResources(0, 2, srvs);
+            g_ctx->DrawIndexed(d.sub->indexCount, d.sub->indexStart, 0);
         }
     }
     } // end reconstruction path (!useGame)

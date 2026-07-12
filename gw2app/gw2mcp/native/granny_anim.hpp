@@ -127,7 +127,14 @@ inline float knotScaleFromTrunc(uint16_t trunc) {
 // Fill a Curve by dequantizing the curve object at byte offset `obj`.
 // `expectDim` is the component count expected by the owning slot (3/4/9); used
 // only for the constant/identity fallbacks where the format doesn't imply it.
-inline void decodeCurve(const uint8_t* b, size_t n, size_t obj, int expectDim, Curve& c) {
+// `p` is the blob's pointer size (4 for 32-bit packfiles, 8 for 64-bit). The
+// serialized curve_data structs are 4-byte packed with p-byte pointers, so any
+// field that follows an embedded pointer shifts by (p-4) between the two widths.
+// Only DaK*/K32fC32f have a scalar *after* a pointer; every other format's sole
+// pointer sits at a p-independent offset, so its layout is unchanged. Pointer
+// VALUES are read with u32() for both widths: blob offsets fit in 32 bits and
+// the high dword of a 64-bit self-blob-relative offset is always zero (LE).
+inline void decodeCurve(const uint8_t* b, size_t n, size_t obj, int expectDim, Curve& c, int p) {
     if (obj == 0 || obj + 2 > n) { c.fmt = F_Identity; c.dim = expectDim; return; }
     c.fmt    = b[obj];
     c.degree = b[obj + 1];
@@ -163,10 +170,11 @@ inline void decodeCurve(const uint8_t* b, size_t n, size_t obj, int expectDim, C
         break;
 
     case F_K32fC32f: { // DaK32fC32f: float knots + float controls
+        // {i16 Pad@2, i32 KC@4, real32* Knots@8, i32 CC@(8+p), real32* Ctrls@(12+p)}
         uint32_t kc = u32(b, n, obj + 4);
         size_t   kp = u32(b, n, obj + 8);
-        uint32_t cc = u32(b, n, obj + 12);
-        size_t   cp = u32(b, n, obj + 16);
+        uint32_t cc = u32(b, n, obj + 8 + p);
+        size_t   cp = u32(b, n, obj + 12 + p);
         int dim = kc ? (int)(cc / kc) : expectDim;
         c.dim = dim ? dim : expectDim;
         for (uint32_t i = 0; i < kc; ++i) c.knots.push_back(f32(b, n, kp + 4*i));
@@ -186,12 +194,13 @@ inline void decodeCurve(const uint8_t* b, size_t n, size_t obj, int expectDim, C
     // ---- generic quantized: {u16 trunc@2, i32 SOC@4, ptr SO@8, i32 KCC@12, ptr KC@16}
     case F_DaK16uC16u:
     case F_DaK8uC8u: {
+        // {u16 trunc@2, i32 SOC@4, real32* SO@8, i32 KCC@(8+p), K/C* KC@(12+p)}
         int bytes = (c.fmt == F_DaK16uC16u) ? 2 : 1;
         float knotScale = knotScaleFromTrunc(u16(b, n, obj + 2));
         int soc = (int)u32(b, n, obj + 4);
         size_t soPtr = u32(b, n, obj + 8);
-        int kcc = (int)u32(b, n, obj + 12);
-        size_t kcPtr = u32(b, n, obj + 16);
+        int kcc = (int)u32(b, n, obj + 8 + p);
+        size_t kcPtr = u32(b, n, obj + 12 + p);
         int dim = soc / 2; if (dim <= 0) dim = expectDim;
         c.dim = dim;
         int knotCount = kcc / (1 + dim);
@@ -451,26 +460,37 @@ inline void coefficients(int d, const float* ti, float t, float* ci) {
 }
 } // namespace detail
 
-inline Anim parse(const uint8_t* b, size_t n) {
+// `ptrSize` is the serialized blob's pointer width: 4 for 32-bit packfiles,
+// 8 for 64-bit ones (GW2's `pfv & 4` flag; gw2model exposes it as `ptr_`). The
+// embedded granny_animation is 4-byte packed with ptrSize-byte pointers, so
+// every struct offset past a pointer scales with it. Passing the wrong width
+// makes Duration read the Name pointer's high dword (== 0 -> "0.0s") and the
+// TransformTracks stride wrong (== no tracks bound) -- the exact 64-bit failure.
+inline Anim parse(const uint8_t* b, size_t n, int ptrSize = 4) {
     using namespace detail;
     Anim a;
-    if (!b || n < 24) return a;
-    a.name        = cstr(b, n, u32(b, n, 0));
-    a.duration    = f32(b, n, 4);
-    a.timeStep    = f32(b, n, 8);
-    a.oversampling= f32(b, n, 12);
-    uint32_t tgc  = u32(b, n, 16);
-    size_t tgs    = u32(b, n, 20);
+    const size_t p = (ptrSize == 8) ? 8 : 4;
+    if (!b || n < 3*p + 4) return a;
+    a.name        = cstr(b, n, u32(b, n, 0));   // char* Name @0
+    a.duration    = f32(b, n, p);               // real32 Duration @p
+    a.timeStep    = f32(b, n, p + 4);           // real32 TimeStep @p+4
+    a.oversampling= f32(b, n, p + 8);           // real32 Oversampling @p+8
+    uint32_t tgc  = u32(b, n, p + 12);          // int32 TrackGroupCount @p+12
+    size_t tgs    = u32(b, n, p + 16);          // track_group** TrackGroups @p+16
     if (!tgc || !tgs) return a;
 
     // Collect transform tracks from every track group (GW2 puts the merged
     // skeletal tracks in group 0 "(merged)"; other groups hold vector tracks).
-    const size_t STRIDE = 32;
+    // track_group: Name@0, VectorTrackCount@p, VectorTracks@p+4,
+    //              TransformTrackCount@2p+4, TransformTracks@2p+8.
+    // transform_track (stride 7p+4): Name@0, Flags@p, then 3 curve2{Type,Object},
+    //   so Ori.Object@2p+4, Pos.Object@4p+4, Sca.Object@6p+4.
+    const size_t STRIDE = 7*p + 4;
     for (uint32_t g = 0; g < tgc && g < 64; ++g) {
-        size_t tg = u32(b, n, tgs + 4*g);
+        size_t tg = u32(b, n, tgs + p*g);       // TrackGroups[g] (p-byte pointer)
         if (!tg) continue;
-        uint32_t ttc = u32(b, n, tg + 12);
-        size_t   tt  = u32(b, n, tg + 16);
+        uint32_t ttc = u32(b, n, tg + 2*p + 4);
+        size_t   tt  = u32(b, n, tg + 2*p + 8);
         if (!tt || !ttc) continue;
         if (ttc > 65535) ttc = 65535;
         a.tracks.reserve(a.tracks.size() + ttc);
@@ -478,9 +498,9 @@ inline Anim parse(const uint8_t* b, size_t n) {
             size_t t = tt + (size_t)i * STRIDE;
             Track tr;
             tr.name = cstr(b, n, u32(b, n, t));
-            decodeCurve(b, n, u32(b, n, t + 8  + 4), 4, tr.ori); // OrientationCurve variant.Object
-            decodeCurve(b, n, u32(b, n, t + 16 + 4), 3, tr.pos); // PositionCurve
-            decodeCurve(b, n, u32(b, n, t + 24 + 4), 9, tr.sca); // ScaleShearCurve
+            decodeCurve(b, n, u32(b, n, t + 2*p + 4), 4, tr.ori, (int)p); // OrientationCurve.Object
+            decodeCurve(b, n, u32(b, n, t + 4*p + 4), 3, tr.pos, (int)p); // PositionCurve.Object
+            decodeCurve(b, n, u32(b, n, t + 6*p + 4), 9, tr.sca, (int)p); // ScaleShearCurve.Object
             a.tracks.push_back(std::move(tr));
         }
     }

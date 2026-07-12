@@ -59,6 +59,14 @@ struct ModelMaterialCPU {
     int diffuseTex = -1;                 // index into ModelPreview::textures (-1 = none)
     int normalTex = -1;
     std::vector<uint32_t> textureFileIds; // all textures the material references (for info)
+    // Real bgfx blend-state word for this material, carried over from the
+    // game-shader extraction (GameMaterial::renderState) when available, so
+    // the RECONSTRUCTION render path (Full mode) can build the material's
+    // own real blend function instead of a single shared guess for every
+    // "effect" material. hasRenderState is false when game-shader extraction
+    // wasn't run for this model (e.g. map-scene props) or didn't resolve.
+    uint64_t renderState = 0;
+    bool hasRenderState = false;
 };
 
 // ---- game-shader (real DXBC) material payload -----------------------------

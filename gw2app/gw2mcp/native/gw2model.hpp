@@ -153,6 +153,7 @@ struct AnimClip {
     std::vector<uint8_t> rawGranny;
     std::vector<uint32_t> fixups;     // byte offsets into rawGranny holding pointers
     size_t grannyFileOffset = 0;      // absolute offset of rawGranny[0] within the packfile
+    int ptrSize = 4;                  // blob pointer width (4=32-bit packfile, 8=64-bit)
 };
 struct AnimInfo {
     bool present = false;
@@ -525,11 +526,22 @@ public:
                         if ((ef=fieldOffset(eT, "renderState", o, f))) { eo=o; eff=rd64(ee + o); }
                         if (vb && (vf=fieldOffset(vT, "renderState", o, f))) { vo=o; var=rd64(vb + o); }
                         uint64_t rstate = eff ? eff : var; // prefer whichever carries a nonzero bgfx state
+                        // A COLOUR effect's PS samples the diffuse/albedo at slot 0 (ss0);
+                        // depth-only and depth-peel passes (0 samplers, or a lone gSs15/gSs12
+                        // global) never do. Gate selection on a real slot-0 sampler so those
+                        // utility passes are never chosen as the material's shader -- otherwise
+                        // the model renders INVISIBLE. Needed because some AMATs (e.g. chicken
+                        // 6012) flag their COLOUR effects with 0x4040 -- the same 0x4000 bit the
+                        // opaque/transparent split keys on -- leaving the "opaque" family with
+                        // only the 0x40 depth passes, so the depth-peel PS (1 global sampler)
+                        // would otherwise win "most samplers".
+                        bool isColor = false;
+                        for (const auto& sb : out.shaders[ps].samplers) if (sb.textureSlot == 0) { isColor = true; break; }
                         bool isTrans = (spf & AMAT_PASSFLAG_TRANSPARENT) != 0;
-                        if (isTrans) {
+                        if (isColor && isTrans) {
                             if (ns > bestTransSamp) { bestTransSamp = ns; out.hasTrans = true;
                                 out.transPsIndex = ps; out.transVsIndex = vs; out.transRenderState = rstate; }
-                        } else {
+                        } else if (isColor) {
                             if (ns > bestSamp) { bestSamp = ns; out.psIndex = ps; out.vsIndex = vs; out.renderState = rstate; }
                         }
                         if (getenv("AMATDBG")) std::fprintf(stderr,
@@ -1052,6 +1064,7 @@ private:
             size_t clip = follow(abase + (size_t)i * ptr_); // ptr_array_ptr: array of pointers
             if (!clip) continue;
             AnimClip c;
+            c.ptrSize = ptr_;   // granny blob pointers match the packfile's width
             size_t o; json f;
             if (!clipType.empty()) {
                 if (fieldOffset(clipType, "token", o, f)) c.token = rd64(clip + o);

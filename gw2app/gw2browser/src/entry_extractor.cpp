@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <cmath>
 #include <cstring>
 #include <dxgiformat.h>
@@ -390,6 +391,19 @@ static const std::set<std::string> kEngineGlobalUniforms = {
     "shSunColor", "shSunData", "shSun", "shRed", "shGreen", "shBlue", "TexelOffset", "StippleDensity", "Time",
     "SunColor", "SunDirection", "AmbientColor", "AlphaRef", "fadedif"};
 
+// GW2 "Token" decode (Arena/Services/Token/Token.cpp; client sub_140E3B360):
+// a base-23 packed lowercase string. Verified against the client and the dat --
+// a MODL ModelConstantData.name (token32) decodes straight to the shader's bgfx
+// uniform name (0xBEF8FD7F -> "gloover", 0x304F2815 -> "blint", 0x54731015 ->
+// "glofade", ...). Rule: v = (token - 0x30000000) mod 2^32; peel base-23 digits.
+static std::string decode_token(uint32_t token) {
+    static const char* kAlpha = "abcdefghiklmnopvrstuwxy"; // 23 chars, no j/q/z
+    uint32_t v = token - 0x30000000u;                      // unsigned wrap, matches engine
+    std::string out;
+    while (v) { out.push_back(kAlpha[v % 23]); v /= 23; }
+    return out;
+}
+
 GameMaterial extract_game_material(Gw2Dat& dat, const nlohmann::json& tpl, const gw2model::Material& m,
                                    const std::function<int(uint32_t)>& get_tex, bool effectHint) {
     GameMaterial out;
@@ -422,15 +436,11 @@ GameMaterial extract_game_material(Gw2Dat& dat, const nlohmann::json& tpl, const
         std::fprintf(stderr, "[mat %u] matId=%u flags=0x%08x sortLayer=%d useTrans=%d ps=%d transPs=%d nConst=%zu\n",
                      m.index, m.materialId, m.materialFlags, (int)m.sortLayer, (int)useTrans, set.psIndex,
                      set.transPsIndex, m.constants.size());
-        // Decode each MatConstant token32 by reversing the engine's 5-bit name pack
-        // (sub_140E3B5E0: a-z/A-Z -> 1..26, 5 bits each; top nibble = 2-digit suffix).
+        // Decode each MatConstant token32 via the engine's base-23 Token::Decode.
         for (const auto& c : m.constants) {
-            char nm[16]; int k = 0; uint32_t t = c.name;
-            for (int b = 0; b < 6 && k < 15; ++b) { uint32_t v = (t >> (b * 5)) & 0x1f; if (v >= 1 && v <= 26) nm[k++] = char('a' + v - 1); }
-            uint32_t suf = (t >> 28) & 0xf; // top nibble
-            nm[k] = 0;
-            std::fprintf(stderr, "    const token=0x%08x name='%s' suf=%u val=[%.3f %.3f %.3f %.3f]\n",
-                         c.name, nm, suf, c.value[0], c.value[1], c.value[2], c.value[3]);
+            std::string nm = decode_token(c.name);
+            std::fprintf(stderr, "    const token=0x%08x name='%s' val=[%.3f %.3f %.3f %.3f]\n",
+                         c.name, nm.c_str(), c.value[0], c.value[1], c.value[2], c.value[3]);
         }
     }
     if (vsIdx < 0 || psIdx < 0 || vsIdx >= (int)set.shaders.size() || psIdx >= (int)set.shaders.size()) return out;
@@ -439,45 +449,36 @@ GameMaterial extract_game_material(Gw2Dat& dat, const nlohmann::json& tpl, const
     parse_bgfx(set.shaders[psIdx].dxbc, out.psDXBC, out.psUniforms, out.psConstBuf);
     if (out.vsDXBC.empty() || out.psDXBC.empty()) return out;
 
-    // Bind MODL MatConstants -> shader cbuffer offsets. The AMAT's ordered
-    // constants[] token list pairs one-to-one (in order) with the shader's
-    // material-constant uniforms (the non-engine-global ones), so:
-    //   token = constantTokens[i]  <->  uniform[i].byteOff
-    // and a MODL MatConstant whose token matches writes its value there. Verified
-    // on 291977 (token 0x894bbfd5 -> 'intmodx'@320 = 6.0, etc). This feeds glow /
-    // spec / metalness / env / scroll / tint params that were previously zeroed.
-    auto bind_consts = [&](const std::vector<uint32_t>& ctoks, const std::vector<GameShaderUniform>& unis,
+    // Bind MODL MatConstants -> shader cbuffer offsets BY NAME. Each MatConstant's
+    // name (token32) is a base-23 GW2 Token that decodes to the bgfx uniform name;
+    // match it to the shader's live uniform of that name and write the float4 at
+    // that uniform's byte offset. This is exact -- no positional pairing and no
+    // dependency on the AMAT constants[] tokens -- and it survives the DXBC
+    // compiler stripping unused uniforms (a MatConstant with no live uniform is
+    // simply skipped). Verified against the client Token::Decode (sub_140E3B360)
+    // and the dat: MODL 143917 gloover/gloptrb/glofade/envcp/blint (and the sci-fi
+    // material's slscale/holoclr/opacity/...) all resolve to real shader uniforms.
+    auto lc = [](std::string s) { for (char& ch : s) ch = (char)std::tolower((unsigned char)ch); return s; };
+    auto bind_consts = [&](const std::vector<GameShaderUniform>& unis,
                            std::vector<GameConstOverride>& outc) {
-        std::vector<std::pair<uint32_t, int>> tokOff; // constantTokens[i] -> uniform[i].byteOff
-        size_t mi = 0;
-        for (const auto& u : unis) {
-            if (u.type == 0 || kEngineGlobalUniforms.count(u.name)) continue; // engine-filled, not a material const
-            if (mi < ctoks.size()) tokOff.emplace_back(ctoks[mi], u.byteOff);
-            ++mi;
-        }
-        if (std::getenv("GW2_CONSTDBG"))
-            std::fprintf(stderr, "[mat %u] bind: material-uniforms=%zu constantTokens=%zu %s\n",
-                         m.index, mi, ctoks.size(), mi == ctoks.size() ? "ALIGNED" : "*** MISALIGNED ***");
-        // SAFETY GATE: the positional pairing (constantTokens[i] <-> uniform[i]) is
-        // only valid when every token has a live uniform. The DXBC compiler strips
-        // unused constants, so counts often differ -- then the pairing drifts and a
-        // MatConstant lands in the WRONG uniform (e.g. 291977 jade -> red). Without
-        // the name->token hash (unsolved: tokens hash a longer internal name than the
-        // truncated bgfx uniform name) we can't realign, so bind only when aligned.
-        if (mi != ctoks.size()) return;
         for (const auto& c : m.constants) {
-            for (const auto& to : tokOff) {
-                if (to.first == c.name) {
-                    GameConstOverride ov; ov.byteOff = to.second;
-                    for (int k = 0; k < 4; ++k) ov.value[k] = c.value[k];
-                    outc.push_back(ov);
-                    break;
-                }
+            std::string nm = decode_token(c.name);
+            if (nm.empty()) continue;
+            for (const auto& u : unis) {
+                if (u.type == 0 || kEngineGlobalUniforms.count(u.name)) continue; // engine-filled
+                if (lc(u.name) != nm) continue;
+                GameConstOverride ov; ov.byteOff = u.byteOff;
+                for (int k = 0; k < 4; ++k) ov.value[k] = c.value[k];
+                outc.push_back(ov);
+                if (std::getenv("GW2_CONSTDBG"))
+                    std::fprintf(stderr, "[mat %u] const '%s'@%d = [%.3f %.3f %.3f %.3f]\n",
+                                 m.index, u.name.c_str(), u.byteOff, c.value[0], c.value[1], c.value[2], c.value[3]);
+                break;
             }
         }
     };
-    bind_consts(set.shaders[vsIdx].constantTokens, out.vsUniforms, out.vsConsts);
-    bind_consts(set.shaders[psIdx].constantTokens, out.psUniforms, out.psConsts);
+    bind_consts(out.vsUniforms, out.vsConsts);
+    bind_consts(out.psUniforms, out.psConsts);
 
     for (const auto& b : set.shaders[psIdx].samplers) {
         if (b.textureSlot >= 16) continue;
@@ -568,7 +569,18 @@ std::shared_ptr<ModelPreview> build_model_preview(const std::vector<uint8_t>& mo
                 if (area > bestDiffuseArea) { bestDiffuseArea = area; mat.diffuseTex = ti; }
             }
         }
-        if (mat.diffuseTex >= 0) {
+        // Real transparency signal: materialFlags bit 0 (alpha-blend) combined
+        // with sortLayer>0, the same test extract_game_material uses to pick
+        // the AMAT's transparent effect variant (see its comment for why both
+        // are needed). This replaces guessing from the diffuse texture's
+        // pixels, which is a leftover from before the real AMAT/shader parser
+        // existed and can both miss real transparent materials (e.g. colored,
+        // non-grayscale glass/lenses) and wrongly flag opaque grayscale-ish
+        // textures as "effect".
+        bool flaggedTranslucent = (m.materialFlags & 0x1u) != 0 && m.sortLayer > 0;
+        if (flaggedTranslucent) {
+            mat.isEffect = true;
+        } else if (mat.diffuseTex >= 0) {
             mat.isEffect = looks_like_effect(out->textures[mat.diffuseTex].rgba);
         }
         // A single plausible [0,1] color constant becomes the material tint.
@@ -579,15 +591,43 @@ std::shared_ptr<ModelPreview> build_model_preview(const std::vector<uint8_t>& mo
             }
         }
         bool matIsEffect = mat.isEffect; // captured before the move below
-        out->materials.push_back(std::move(mat));
 
         // Real game shaders (bgfx DXBC from the material's AMAT), for the
         // "Shader" render mode. Only for the single-model preview path -- the
         // map scene loads many props and skips this to stay fast. Pass the effect
         // flag so translucent materials pick the AMAT's transparent variant.
+        GameMaterial gm;
         if (want_game) {
-            out->gameMaterials.push_back(extract_game_material(dat, tpl, m, get_texture, matIsEffect));
+            gm = extract_game_material(dat, tpl, m, get_texture, matIsEffect);
         }
+        if (gm.ok) {
+            // Prefer the diffuse/albedo texture the real PS actually samples
+            // (resolved from its own sampler bindings) over the "biggest
+            // non-normal-format texture this material references" guess
+            // above -- a material can reference textures (masks, lightmaps,
+            // detail maps) that the largest-area heuristic can pick by
+            // mistake even though the shader never binds them as albedo.
+            int bestSlotTex = -1;
+            long bestSlotArea = -1;
+            for (const auto& s : gm.samplers) {
+                if (s.global != 0 || s.gameTex < 0) continue;
+                const ModelTextureCPU& t = out->textures[s.gameTex];
+                if (t.isNormal) continue;
+                long area = static_cast<long>(t.width) * t.height;
+                if (area > bestSlotArea) { bestSlotArea = area; bestSlotTex = s.gameTex; }
+            }
+            if (bestSlotTex >= 0) mat.diffuseTex = bestSlotTex;
+            mat.renderState = gm.renderState;
+            mat.hasRenderState = true;
+            // A nonzero bgfx blend word is the real shader's own word that it
+            // draws this material blended -- trust it over the flag/sortLayer
+            // heuristic above when they disagree.
+            uint32_t blendBits = static_cast<uint32_t>((gm.renderState >> 12) & 0xffffu);
+            if (blendBits != 0) mat.isEffect = true;
+        }
+
+        out->materials.push_back(std::move(mat));
+        if (want_game) out->gameMaterials.push_back(std::move(gm));
     }
 
     // Meshes: convert to GVertex + compute overall bounds.
@@ -668,7 +708,7 @@ std::shared_ptr<ModelPreview> build_model_preview(const std::vector<uint8_t>& mo
     for (const auto& c : model.anim.clips) {
         out->animationTokens.push_back(c.token);
         if (!c.rawGranny.empty()) {
-            granny::Anim clip = granny::parse(c.rawGranny.data(), c.rawGranny.size());
+            granny::Anim clip = granny::parse(c.rawGranny.data(), c.rawGranny.size(), c.ptrSize);
             if (clip.valid) out->animClips.push_back(std::move(clip));
         }
     }

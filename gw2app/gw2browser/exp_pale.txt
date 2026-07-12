@@ -1,0 +1,1 @@
+[autoexp] meanAlbedo=0.449 -> exposure=1.775

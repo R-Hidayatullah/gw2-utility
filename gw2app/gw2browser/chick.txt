@@ -1,0 +1,5 @@
+[mat 0] matId=2 flags=0x00000208 sortLayer=0 useTrans=0 ps=9 transPs=1 nConst=0
+[mat 1] matId=6 flags=0x00000208 sortLayer=0 useTrans=0 ps=9 transPs=1 nConst=0
+[mat 2] matId=14 flags=0x00000208 sortLayer=0 useTrans=0 ps=4 transPs=0 nConst=1
+    const token=0x8d45b133 name='modxcol' val=[0.980 0.839 0.557 1.000]
+[autoexp] meanAlbedo=0.448 -> exposure=0.961
